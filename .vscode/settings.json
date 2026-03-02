@@ -1,0 +1,11 @@
+{
+  "cSpell.overrides": [
+    {
+      "filename": "package.json",
+      "ignoreWords": [
+        "ganchev",
+        "typespec"
+      ]
+    }
+  ]
+}

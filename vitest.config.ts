@@ -1,14 +1,17 @@
-import { defineConfig } from "vitest/config";
-import alloyPlugin from "@alloy-js/rollup-plugin";
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+import { defineConfig } from 'vitest/config';
+import alloyPlugin from '@alloy-js/rollup-plugin';
 
 export default defineConfig({
   test: {
-    include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
-    exclude: ["test/**/*.d.ts"],
+    include: ['test/**/*.test.ts', 'test/**/*.test.tsx'],
+    exclude: ['test/**/*.d.ts'],
   },
   esbuild: {
-    jsx: "preserve",
-    sourcemap: "both",
+    jsx: 'preserve',
+    sourcemap: 'both',
   },
   plugins: [alloyPlugin()],
 });

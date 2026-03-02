@@ -6,14 +6,6 @@ This is `@microsoft/typespec-graph-docs-emitter`, a TypeSpec emitter that genera
 
 The emitter uses the **alloy-based emitter framework** (`@typespec/emitter-framework`) with JSX components for Markdown generation. The `.tsp` files in `sample-specs/` are test fixtures, not the primary artifacts.
 
-## Build & Test Commands
-
-```sh
-npm run build          # TypeScript + alloy build
-npm test               # Run full test suite (vitest)
-npx vitest run <file>  # Run a single test file
-```
-
 ## Architecture
 
 ```
@@ -129,6 +121,26 @@ Always include `unknownFutureValue` as the last member (Microsoft Graph evolvabl
 
 ## Code Style
 
+Enforced by ESLint + Prettier (run `npm run lint`):
+
+- **Single quotes** for all strings (including JSX attributes): `'foo'` not `"foo"`
+- **Copyright header** required at the top of every `.ts`, `.tsx`, and `.js` file:
+  ```ts
+  // Copyright (c) Microsoft Corporation.
+  // Licensed under the MIT license.
+
+  ```
+- **No unused variables** — prefix intentionally unused parameters with `_` (e.g., `_context`)
+- **Prettier formatting**: 80-char print width, trailing commas, `endOfLine: 'auto'`
 - 2-space indentation (spaces, not tabs), insert final newline (see `.editorconfig`)
 - Emitter source is TypeScript + JSX (`.tsx` for components, `.ts` for utilities)
 - camelCase for TypeSpec model/property/enum names in the sample specs
+
+## Build, Test & Lint Commands
+
+```sh
+npm run build          # TypeScript + alloy build
+npm test               # Run full test suite (vitest)
+npx vitest run <file>  # Run a single test file
+npm run lint           # ESLint (includes Prettier checks)
+```
