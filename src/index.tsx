@@ -8,7 +8,7 @@ import { EmitContext, Namespace } from '@typespec/compiler';
 import { Output, SourceFile, SourceDirectory } from '@alloy-js/core';
 import { writeOutput } from '@typespec/emitter-framework';
 import { GraphDocsEmitterOptions } from './lib.js';
-import { collectGraphTypes } from './utils/type-collector.js';
+import { collectGraphTypes, GraphRouteInfo } from './utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
   ResolvedOperation,
@@ -50,17 +50,11 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   const operationsByEntity = new Map<string, ResolvedOperation[]>();
   for (const route of types.routes) {
     const ops = resolveOperationsFromRoute(program, route, types.entities);
-    for (const op of ops) {
-      // Try to find which entity this route targets
-      const entityName = findEntityForRoute(
-        route.path,
-        types.entities.map((e) => e.name),
-      );
-      if (entityName) {
-        const existing = operationsByEntity.get(entityName) ?? [];
-        existing.push(op);
-        operationsByEntity.set(entityName, existing);
-      }
+    const entityName = getEntityNameForRoute(route);
+    if (entityName && ops.length > 0) {
+      const existing = operationsByEntity.get(entityName) ?? [];
+      existing.push(...ops);
+      operationsByEntity.set(entityName, existing);
     }
   }
 
@@ -146,25 +140,18 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
 }
 
 /**
- * Find which entity a route targets by matching the route path against entity names.
- * Uses a simple heuristic: find the entity whose name (lowercased) appears as a
- * segment in the route path.
+ * Extract the resource entity name from a route interface's source interfaces.
+ * Route interfaces extend Resource<T> or Collection<T>, where T is the entity model.
  */
-function findEntityForRoute(
-  routePath: string,
-  entityNames: string[],
-): string | undefined {
-  const pathLower = routePath.toLowerCase();
-  // Try to find the most specific match (longest entity name in the path)
-  let bestMatch: string | undefined;
-  let bestLength = 0;
-
-  for (const name of entityNames) {
-    const nameLower = name.toLowerCase();
-    if (pathLower.includes(nameLower) && name.length > bestLength) {
-      bestMatch = name;
-      bestLength = name.length;
+function getEntityNameForRoute(route: GraphRouteInfo): string | undefined {
+  for (const src of route.iface.sourceInterfaces) {
+    if (src.templateMapper?.args) {
+      for (const arg of src.templateMapper.args) {
+        if (arg.entityKind === 'Type' && arg.kind === 'Model' && arg.name) {
+          return arg.name;
+        }
+      }
     }
   }
-  return bestMatch;
+  return undefined;
 }

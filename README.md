@@ -1,5 +1,8 @@
 # @microsoft/typespec-graph-docs-emitter
 
+<!-- cSpell:ignore typespec msgraph tspconfig -->
+<!-- cSpell:ignoreRegexp copilotconversation.* -->
+
 A TypeSpec emitter that generates Markdown API reference documentation for Microsoft Graph APIs, matching the format used on [learn.microsoft.com](https://learn.microsoft.com/graph/api/resources/).
 
 ## Features
@@ -47,15 +50,15 @@ npx tsp compile .
 
 ## Options
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `api-version` | `string` | `v1.0` | The Microsoft Graph API version (e.g., `v1.0`, `beta`). Used for display in generated docs. |
-| `output-dir` | `string` | compiler default | Override the output directory for generated files. |
-| `ms-date` | `string` | today's date | Override the `ms.date` value in YAML front matter (ISO 8601 date). |
+| Option        | Type     | Default          | Description                                                                                 |
+|---------------|----------|------------------|---------------------------------------------------------------------------------------------|
+| `api-version` | `string` | `v1.0`           | The Microsoft Graph API version (e.g., `v1.0`, `beta`). Used for display in generated docs. |
+| `output-dir`  | `string` | compiler default | Override the output directory for generated files.                                          |
+| `ms-date`     | `string` | today's date     | Override the `ms.date` value in YAML front matter (ISO 8601 date).                          |
 
 ## Output Structure
 
-```
+```text
 {output-dir}/
 ├── resources/
 │   ├── copilotconversation.md          # Entity type pages
@@ -74,14 +77,14 @@ npx tsp compile .
 
 **API methods:**
 
-| Operation | Filename Pattern | Example |
-|---|---|---|
+| Operation        | Filename Pattern                | Example                  |
+|------------------|---------------------------------|--------------------------|
 | GET (collection) | `{parent}-list-{collection}.md` | `user-list-calendars.md` |
-| GET (single) | `{resource}-get.md` | `message-get.md` |
-| POST (create) | `{parent}-post-{collection}.md` | `user-post-messages.md` |
-| POST (action) | `{resource}-{action}.md` | `message-reply.md` |
-| PATCH | `{resource}-update.md` | `message-update.md` |
-| DELETE | `{resource}-delete.md` | `message-delete.md` |
+| GET (single)     | `{resource}-get.md`             | `message-get.md`         |
+| POST (create)    | `{parent}-post-{collection}.md` | `user-post-messages.md`  |
+| POST (action)    | `{resource}-{action}.md`        | `message-reply.md`       |
+| PATCH            | `{resource}-update.md`          | `message-update.md`      |
+| DELETE           | `{resource}-delete.md`          | `message-delete.md`      |
 
 ## Development
 
