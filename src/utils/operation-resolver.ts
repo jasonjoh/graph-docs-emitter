@@ -193,10 +193,13 @@ function resolveOperation(
   const description = getDoc(program, operation) ?? undefined;
 
   // Check the operation name against known patterns
-  // First check the operation's own name, then its source operation name
-  let pattern = OPERATION_PATTERNS[opName];
-  if (!pattern && operation.sourceOperation) {
+  // Prefer source operation name (template name) over the alias name
+  let pattern = undefined;
+  if (operation.sourceOperation) {
     pattern = OPERATION_PATTERNS[operation.sourceOperation.name];
+  }
+  if (!pattern) {
+    pattern = OPERATION_PATTERNS[opName];
   }
 
   if (pattern) {
