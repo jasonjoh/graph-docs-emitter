@@ -4,6 +4,7 @@
       "filename": "package.json",
       "ignoreWords": [
         "ganchev",
+        "msgraph",
         "typespec"
       ]
     }
