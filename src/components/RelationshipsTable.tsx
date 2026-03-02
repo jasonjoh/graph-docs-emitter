@@ -38,6 +38,8 @@ export function RelationshipsTable(props: RelationshipsTableProps): Children {
 
   if (rows.length === 0) return [];
 
+  rows.sort((a, b) => a.localeCompare(b));
+
   return [
     '\n## Relationships\n\n',
     '| Relationship | Type | Description |\n',

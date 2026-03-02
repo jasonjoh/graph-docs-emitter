@@ -16,7 +16,10 @@ export interface YamlFrontMatterProps {
  * Renders a YAML front matter block for a learn.microsoft.com doc page.
  */
 export function YamlFrontMatter(props: YamlFrontMatterProps): Children {
-  const date = props.msDate ?? new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const defaultDate =
+    `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
+  const date = props.msDate ?? defaultDate;
   return [
     '---\n',
     `title: "${props.title}"\n`,

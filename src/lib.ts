@@ -31,7 +31,7 @@ const EmitterOptionsSchema: JSONSchemaType<GraphDocsEmitterOptions> = {
       type: 'string',
       nullable: true,
       description:
-        'Override the ms.date value in YAML front matter (ISO 8601 date, e.g., 2025-01-15). Defaults to today.',
+        'Override the ms.date value in YAML front matter (MM/DD/YYYY format). Defaults to today.',
     },
     author: {
       type: 'string',

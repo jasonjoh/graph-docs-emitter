@@ -35,7 +35,7 @@ describe('YamlFrontMatter', () => {
         title='test resource type'
         description='A test description.'
         docType='resourcePageType'
-        msDate='2025-01-15'
+        msDate='01/15/2025'
       />,
     );
 
@@ -43,7 +43,7 @@ describe('YamlFrontMatter', () => {
     expect(result).toContain('title: "test resource type"');
     expect(result).toContain('description: "A test description."');
     expect(result).toContain('doc_type: resourcePageType');
-    expect(result).toContain('ms.date: 2025-01-15');
+    expect(result).toContain('ms.date: 01/15/2025');
   });
 
   it('escapes quotes in description', () => {
@@ -52,7 +52,7 @@ describe('YamlFrontMatter', () => {
         title='test'
         description='A "quoted" description.'
         docType='apiPageType'
-        msDate='2025-01-15'
+        msDate='01/15/2025'
       />,
     );
 
@@ -65,7 +65,7 @@ describe('YamlFrontMatter', () => {
         title='test'
         description='desc'
         docType='resourcePageType'
-        msDate='2025-01-15'
+        msDate='01/15/2025'
         author='jasonjoh'
       />,
     );
@@ -79,7 +79,7 @@ describe('YamlFrontMatter', () => {
         title='test'
         description='desc'
         docType='resourcePageType'
-        msDate='2025-01-15'
+        msDate='01/15/2025'
       />,
     );
 

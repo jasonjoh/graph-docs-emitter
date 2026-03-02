@@ -40,6 +40,8 @@ export function PropertiesTable(props: PropertiesTableProps): Children {
 
   if (rows.length === 0) return [];
 
+  rows.sort((a, b) => a.localeCompare(b));
+
   return [
     '\n## Properties\n\n',
     '| Property | Type | Description |\n',
