@@ -5,6 +5,9 @@ import { createTypeSpecLibrary, JSONSchemaType } from '@typespec/compiler';
 
 export interface GraphDocsEmitterOptions {
   'api-version'?: string;
+  'output-dir'?: string;
+  'ms-date'?: string;
+  author?: string;
 }
 
 const EmitterOptionsSchema: JSONSchemaType<GraphDocsEmitterOptions> = {
@@ -16,7 +19,25 @@ const EmitterOptionsSchema: JSONSchemaType<GraphDocsEmitterOptions> = {
       nullable: true,
       default: 'v1.0',
       description:
-        'The API version to use in generated documentation (e.g., v1.0, beta).',
+        'The Microsoft Graph API version (e.g., v1.0, beta). Used for display purposes in generated documentation.',
+    },
+    'output-dir': {
+      type: 'string',
+      nullable: true,
+      description:
+        'Override the output directory for generated files. Defaults to the compiler emitter output directory.',
+    },
+    'ms-date': {
+      type: 'string',
+      nullable: true,
+      description:
+        'Override the ms.date value in YAML front matter (ISO 8601 date, e.g., 2025-01-15). Defaults to today.',
+    },
+    author: {
+      type: 'string',
+      nullable: true,
+      description:
+        "The author's GitHub username. Set as the `author` field in YAML front matter.",
     },
   },
   required: [],

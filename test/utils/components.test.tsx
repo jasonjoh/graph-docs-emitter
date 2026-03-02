@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+// cSpell:ignore jasonjoh testitem
+
 /** @jsxImportSource @alloy-js/core */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
@@ -55,6 +57,33 @@ describe('YamlFrontMatter', () => {
     );
 
     expect(result).toContain('description: "A \\"quoted\\" description."');
+  });
+
+  it('renders author field when provided', () => {
+    const result = renderToString(
+      <YamlFrontMatter
+        title='test'
+        description='desc'
+        docType='resourcePageType'
+        msDate='2025-01-15'
+        author='jasonjoh'
+      />,
+    );
+
+    expect(result).toContain('author: jasonjoh');
+  });
+
+  it('defaults author field when not provided', () => {
+    const result = renderToString(
+      <YamlFrontMatter
+        title='test'
+        description='desc'
+        docType='resourcePageType'
+        msDate='2025-01-15'
+      />,
+    );
+
+    expect(result).toContain('author: YOUR_GITHUB_USERNAME');
   });
 });
 

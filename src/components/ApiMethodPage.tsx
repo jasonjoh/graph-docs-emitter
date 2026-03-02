@@ -9,6 +9,8 @@ import { ResolvedOperation } from '../utils/operation-resolver.js';
 export interface ApiMethodPageProps {
   operation: ResolvedOperation;
   namespace: string;
+  msDate?: string;
+  author?: string;
 }
 
 /**
@@ -20,7 +22,13 @@ export function ApiMethodPage(props: ApiMethodPageProps): Children {
   const desc = op.description ?? `${op.name}.`;
 
   return [
-    <YamlFrontMatter title={title} description={desc} docType='apiPageType' />,
+    <YamlFrontMatter
+      title={title}
+      description={desc}
+      docType='apiPageType'
+      msDate={props.msDate}
+      author={props.author}
+    />,
     '\n',
     `# ${title}\n\n`,
     `Namespace: ${props.namespace}\n\n`,

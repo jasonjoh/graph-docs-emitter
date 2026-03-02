@@ -9,6 +9,7 @@ export interface YamlFrontMatterProps {
   description: string;
   docType: 'resourcePageType' | 'apiPageType' | 'enumPageType';
   msDate?: string;
+  author?: string;
 }
 
 /**
@@ -20,6 +21,7 @@ export function YamlFrontMatter(props: YamlFrontMatterProps): Children {
     '---\n',
     `title: "${props.title}"\n`,
     `description: "${escapeYaml(props.description)}"\n`,
+    `author: ${props.author ? props.author : 'YOUR_GITHUB_USERNAME'}\n`,
     `doc_type: ${props.docType}\n`,
     `ms.date: ${date}\n`,
     '---\n',

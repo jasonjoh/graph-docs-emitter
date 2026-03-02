@@ -12,6 +12,8 @@ export interface EnumTypePageProps {
   enumType: Enum;
   description: string | undefined;
   namespace: string;
+  msDate?: string;
+  author?: string;
 }
 
 /**
@@ -22,7 +24,13 @@ export function EnumTypePage(props: EnumTypePageProps): Children {
   const desc = props.description ?? `Represents ${props.enumType.name}.`;
 
   return [
-    <YamlFrontMatter title={title} description={desc} docType='enumPageType' />,
+    <YamlFrontMatter
+      title={title}
+      description={desc}
+      docType='enumPageType'
+      msDate={props.msDate}
+      author={props.author}
+    />,
     '\n',
     `# ${title}\n\n`,
     `Namespace: ${props.namespace}\n\n`,

@@ -13,6 +13,8 @@ export interface ComplexTypePageProps {
   model: Model;
   description: string | undefined;
   namespace: string;
+  msDate?: string;
+  author?: string;
 }
 
 /**
@@ -28,6 +30,8 @@ export function ComplexTypePage(props: ComplexTypePageProps): Children {
       title={title}
       description={desc}
       docType='resourcePageType'
+      msDate={props.msDate}
+      author={props.author}
     />,
     '\n',
     `# ${title}\n\n`,

@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
+// cSpell:ignore msgraph
+
 /** @jsxImportSource @alloy-js/core */
 import { EmitContext, Namespace } from '@typespec/compiler';
 import { Output, SourceFile, SourceDirectory } from '@alloy-js/core';
@@ -79,6 +81,10 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
     }
   }
 
+  const outputDir = context.options['output-dir'] ?? context.emitterOutputDir;
+  const msDate = context.options['ms-date'];
+  const author = context.options.author;
+
   await writeOutput(
     program,
     <Output>
@@ -92,6 +98,8 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               namespace={getNamespaceForType(entity.model.namespace)}
               operations={operationsByEntity.get(entity.name) ?? []}
               getMethodFilename={(op) => getMethodFilename(op, entity.name)}
+              msDate={msDate}
+              author={author}
             />
           </SourceFile>
         ))}
@@ -102,6 +110,8 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               model={complex.model}
               description={complex.description}
               namespace={getNamespaceForType(complex.model.namespace)}
+              msDate={msDate}
+              author={author}
             />
           </SourceFile>
         ))}
@@ -112,6 +122,8 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               enumType={enumInfo.enumType}
               description={enumInfo.description}
               namespace={getNamespaceForType(enumInfo.enumType.namespace)}
+              msDate={msDate}
+              author={author}
             />
           </SourceFile>
         ))}
@@ -119,12 +131,17 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
       <SourceDirectory path='api'>
         {methodPages.map((page) => (
           <SourceFile path={page.filename} filetype='md'>
-            <ApiMethodPage operation={page.op} namespace={page.ns} />
+            <ApiMethodPage
+              operation={page.op}
+              namespace={page.ns}
+              msDate={msDate}
+              author={author}
+            />
           </SourceFile>
         ))}
       </SourceDirectory>
     </Output>,
-    context.emitterOutputDir,
+    outputDir,
   );
 }
 

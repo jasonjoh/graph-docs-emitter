@@ -18,6 +18,8 @@ export interface ResourceTypePageProps {
   namespace: string;
   operations: ResolvedOperation[];
   getMethodFilename: (op: ResolvedOperation) => string;
+  msDate?: string;
+  author?: string;
 }
 
 /**
@@ -32,6 +34,8 @@ export function ResourceTypePage(props: ResourceTypePageProps): Children {
       title={title}
       description={desc}
       docType='resourcePageType'
+      msDate={props.msDate}
+      author={props.author}
     />,
     '\n',
     `# ${title}\n\n`,

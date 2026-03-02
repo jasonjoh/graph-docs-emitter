@@ -10,7 +10,7 @@ The emitter uses the **alloy-based emitter framework** (`@typespec/emitter-frame
 
 ```
 src/
-├── index.ts                  # $onEmit entry point, emitter orchestration
+├── index.tsx                 # $onEmit entry point, emitter orchestration
 ├── lib.ts                    # createTypeSpecLibrary() definition, options schema
 ├── utils/
 │   ├── type-collector.ts     # Walks program, collects Graph entities/complex/enums/routes
@@ -29,6 +29,13 @@ src/
 │   ├── ApiMethodPage.tsx     # Full API method page
 │   ├── EnumTypePage.tsx      # Full enum type page
 │   └── ComplexTypePage.tsx   # Full complex type page
+test/
+├── test-host.ts              # Test infrastructure (TypeSpec test host + runner)
+├── utils/
+│   ├── filename.test.ts      # Unit tests for filename generation
+│   └── components.test.tsx   # Component rendering tests
+├── integration/
+│   └── type-discovery.test.ts# Integration tests for type collection + operation resolution
 sample-specs/                 # TypeSpec fixtures for testing
 ```
 
@@ -40,12 +47,42 @@ sample-specs/                 # TypeSpec fixtures for testing
 4. Page-level JSX components (`ResourceTypePage`, `ApiMethodPage`, etc.) compose section components
 5. Alloy's `writeOutput` renders all `<SourceFile>` elements to disk
 
+### Output Structure
+
+```
+{output-dir}/
+├── resources/                # Resource type, complex type, and enum pages
+│   ├── {resourcename}.md
+│   ├── {complextype}.md
+│   └── {enumname}.md
+└── api/                      # API method pages
+    ├── {resource}-get.md
+    ├── {parent}-list-{collection}.md
+    └── ...
+```
+
 ### Key Dependencies
 
 - `@typespec/compiler` — TypeSpec compilation, type system, `navigateProgram`
-- `@typespec/emitter-framework` — `writeOutput`, `useTsp()` hook, typekits
-- `@alloy-js/core` — `Output`, `SourceFile`, `SourceDirectory`, rendering
+- `@typespec/emitter-framework` — `writeOutput`, rendering pipeline
+- `@alloy-js/core` — `Output`, `SourceFile`, `SourceDirectory`, JSX rendering
 - `@microsoft/typespec-msgraph` — Graph-specific decorators and shared models (peer dep)
+
+### Key Design Decisions
+
+- **`@microsoft/typespec-msgraph` exports limitation**: Only decorator accessor functions are publicly exported (e.g., `isEntity`, `isComplex`, `getGraphRoutePaths`). Entity types (`MsGraphModel`, etc.) and utility functions (`GetMsGraphNamespaces`, etc.) are internal. The emitter uses only public APIs + compiler's `navigateProgram`.
+- **Operation resolution**: Prefers `sourceOperation.name` (the GraphOps template name) over the local alias name for pattern matching. This correctly distinguishes `get is GraphOps.GetResource` from `get is GraphOps.GetPagedCollection`.
+- **JSX preserve mode**: `tsconfig.json` uses `jsx: 'preserve'` and the alloy rollup plugin handles the JSX transform. The `@alloy-js/core` package does not export a standard `jsx-dev-runtime`, so esbuild's automatic mode cannot be used. The resulting vitest warning about JSX import source is harmless.
+
+## Emitter Options
+
+Configured in `tspconfig.yaml` under the emitter name:
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `api-version` | string | `v1.0` | API version for display (e.g., `v1.0`, `beta`) |
+| `output-dir` | string | compiler default | Override the output directory |
+| `ms-date` | string | today's date | Override `ms.date` in YAML front matter (ISO 8601) |
 
 ## Output File Naming Conventions
 
@@ -84,6 +121,10 @@ The parent entity is resolved from the route hierarchy. The resource name comes 
 
 - YAML front matter, `# {name} enum type` heading, `## Members` table
 
+### Complex type page
+
+- Same as resource type page but without `## Methods` and `## Relationships` sections
+
 ## TypeSpec Input Conventions
 
 ### Graph Decorators the Emitter Must Read
@@ -94,11 +135,11 @@ The parent entity is resolved from the route hierarchy. The resource name comes 
 - `@ownerless` — Singleton entry points
 - `@computed`, `@readOnly`, `@requiredForCreate`, `@immutable`, `@key` — Property metadata
 - `@publicNamespace("microsoft.graph")` — Namespace filtering (only emit types from these)
-- `@operationParameters` — Identifies request body models
+- `@operationParameters` — Identifies request body models (excluded from type pages)
 
 ### Operation Mapping
 
-`GraphOps.*` templates map to HTTP verbs:
+`GraphOps.*` templates map to HTTP verbs. The resolver prefers the source operation template name over the local alias:
 
 | GraphOps Template | HTTP Method | Page Type |
 |---|---|---|
@@ -132,15 +173,27 @@ Enforced by ESLint + Prettier (run `npm run lint`):
   ```
 - **No unused variables** — prefix intentionally unused parameters with `_` (e.g., `_context`)
 - **Prettier formatting**: 80-char print width, trailing commas, `endOfLine: 'auto'`
-- 2-space indentation (spaces, not tabs), insert final newline (see `.editorconfig`)
+- 2-space indentation (spaces, not tabs), insert final newline
 - Emitter source is TypeScript + JSX (`.tsx` for components, `.ts` for utilities)
+- JSX files require `/** @jsxImportSource @alloy-js/core */` pragma
 - camelCase for TypeSpec model/property/enum names in the sample specs
 
 ## Build, Test & Lint Commands
 
 ```sh
-npm run build          # TypeScript + alloy build
+npm run build          # TypeScript + alloy build (npx alloy build)
 npm test               # Run full test suite (vitest)
 npx vitest run <file>  # Run a single test file
 npm run lint           # ESLint (includes Prettier checks)
+npx eslint --fix .     # Auto-fix lint issues
+npm run clean          # Remove dist/
 ```
+
+## Testing
+
+Tests use `vitest` with the `@alloy-js/rollup-plugin` for JSX support.
+
+- **Unit tests** (`test/utils/`): Pure function tests for filename generation and component rendering
+- **Integration tests** (`test/integration/`): Use `@typespec/compiler/testing` and `@microsoft/typespec-msgraph/testing` to compile inline TypeSpec and verify type collection + operation resolution
+- Test host creates a fresh `BasicTestRunner` per test via `beforeEach` to avoid state leakage
+- JSX components are tested by rendering with `renderTree()` + `printTree()` from `@alloy-js/core`
