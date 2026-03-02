@@ -1,5 +1,33 @@
 {
-  "dependencies": {
-    "@typespec/compiler": "^1.9.0"
+  "name": "@microsoft/typespec-graph-docs-emitter",
+  "version": "0.1.0",
+  "description": "TypeSpec emitter that generates Markdown API reference documentation for Microsoft Graph APIs",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "tspMain": "dist/src/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "alloy build",
+    "test": "vitest run",
+    "test:watch": "vitest -w",
+    "clean": "rimraf dist/"
+  },
+  "peerDependencies": {
+    "@typespec/compiler": "^1.9.0",
+    "@alloy-js/core": "^0.22.0"
+  },
+  "devDependencies": {
+    "@typespec/compiler": "^1.9.0",
+    "@typespec/emitter-framework": "^0.16.0",
+    "@alloy-js/core": "^0.22.0",
+    "@alloy-js/cli": "^0.22.0",
+    "@alloy-js/rollup-plugin": "^0.1.0",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.0",
+    "rimraf": "^6.0.0"
   }
 }
