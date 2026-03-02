@@ -10,6 +10,7 @@ import {
   Interface,
   Namespace,
   getDoc,
+  getSourceLocation,
   navigateProgram,
 } from '@typespec/compiler';
 import {
@@ -83,6 +84,36 @@ function isInPublicNamespace(
 }
 
 /**
+ * Check if a namespace chain starts with 'reference.' — these are
+ * reference package types that should not be emitted.
+ */
+function isReferenceType(ns: Namespace | undefined): boolean {
+  // Walk to the root namespace to build the full path
+  const parts: string[] = [];
+  let current = ns;
+  while (current && current.name) {
+    parts.unshift(current.name);
+    current = current.namespace;
+  }
+  return parts[0] === 'reference';
+}
+
+/**
+ * Check if a type is defined in node_modules (library type, not user-defined).
+ */
+function isLibraryType(type: Model | Enum | Interface): boolean {
+  try {
+    const loc = getSourceLocation(type);
+    if (loc?.file?.path) {
+      return loc.file.path.includes('node_modules');
+    }
+  } catch {
+    // If we can't get the source location, assume it's not a library type
+  }
+  return false;
+}
+
+/**
  * Walk the TypeSpec program and collect all Graph-relevant types.
  * Only includes types defined in @publicNamespace namespaces,
  * filtering out library/reference types.
@@ -98,6 +129,10 @@ export function collectGraphTypes(program: Program): CollectedTypes {
       if (!model.namespace || !isInPublicNamespace(program, model.namespace)) {
         return;
       }
+      // Skip reference package types
+      if (isReferenceType(model.namespace)) return;
+      // Skip library-defined shared models (e.g., entity, dictionary)
+      if (isLibraryType(model)) return;
       // Skip template declarations (only emit instances)
       if (model.node?.kind === undefined) return;
       // Skip operation parameter models — they are inlined
@@ -121,6 +156,10 @@ export function collectGraphTypes(program: Program): CollectedTypes {
       ) {
         return;
       }
+      // Skip reference package types
+      if (isReferenceType(enumType.namespace)) return;
+      // Skip library-defined shared enums
+      if (isLibraryType(enumType)) return;
       if (!enumType.name || enumType.name === '') return;
 
       const description = getDoc(program, enumType) ?? undefined;

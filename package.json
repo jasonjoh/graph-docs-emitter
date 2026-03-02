@@ -22,11 +22,15 @@
     "@microsoft/typespec-msgraph": ">=1.0.0",
     "@typespec/compiler": "^1.9.0"
   },
+  "overrides": {
+    "@microsoft/typespec-msgraph": "^1.0.1"
+  },
   "devDependencies": {
     "@alloy-js/cli": "^0.22.0",
     "@alloy-js/core": "^0.22.0",
     "@alloy-js/rollup-plugin": "^0.1.0",
     "@microsoft/typespec-msgraph": "^1.0.1",
+    "@microsoft/typespec-msgraph-reference-prod-beta": "^1.0.0-Preview.9",
     "@tony.ganchev/eslint-plugin-header": "^3.2.4",
     "@typespec/compiler": "^1.9.0",
     "@typespec/emitter-framework": "^0.16.0",

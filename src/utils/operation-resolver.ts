@@ -85,6 +85,12 @@ const OPERATION_PATTERNS: Record<
   // Delete operations
   Delete: { httpMethod: 'DELETE', docKind: DocOperationKind.Delete },
   delete: { httpMethod: 'DELETE', docKind: DocOperationKind.Delete },
+
+  // Action operations
+  Action: { httpMethod: 'POST', docKind: DocOperationKind.Action },
+
+  // Function operations
+  Function: { httpMethod: 'GET', docKind: DocOperationKind.Function },
 };
 
 /**
@@ -142,6 +148,7 @@ export function resolveOperationsFromRoute(
   program: Program,
   route: GraphRouteInfo,
   _entities: GraphEntityInfo[],
+  entityName: string | undefined,
 ): ResolvedOperation[] {
   const resolved: ResolvedOperation[] = [];
   const routePath = route.path;
@@ -156,6 +163,7 @@ export function resolveOperationsFromRoute(
       routePath,
       resourceSegment,
       isCollection,
+      entityName,
     );
     if (resolved_op) {
       resolved.push(resolved_op);
@@ -172,6 +180,7 @@ export function resolveOperationsFromRoute(
         routePath,
         resourceSegment,
         isCollection,
+        entityName,
       );
       if (resolved_op) {
         resolved.push(resolved_op);
@@ -189,6 +198,7 @@ function resolveOperation(
   routePath: string,
   resourceSegment: string,
   isCollection: boolean,
+  entityName: string | undefined,
 ): ResolvedOperation | undefined {
   const description = getDoc(program, operation) ?? undefined;
 
@@ -203,6 +213,24 @@ function resolveOperation(
   }
 
   if (pattern) {
+    // For actions and functions, use the operation name and append to route
+    if (
+      pattern.docKind === DocOperationKind.Action ||
+      pattern.docKind === DocOperationKind.Function
+    ) {
+      const returnTypeName = getActionReturnTypeName(operation);
+      return {
+        name: opName,
+        httpMethod: pattern.httpMethod,
+        routePath: `${routePath}/${opName}`,
+        resourceTypeName: resourceSegment,
+        description,
+        docKind: pattern.docKind,
+        actionOrFunctionName: opName,
+        returnTypeName,
+      };
+    }
+
     // Adjust list vs get for "get" operations on collection routes
     let docKind = pattern.docKind;
     if (
@@ -214,7 +242,8 @@ function resolveOperation(
     }
 
     const parentSegment = getParentSegment(routePath);
-    const returnTypeName = getReturnTypeName(operation);
+    // Derive return type from entity name and operation kind
+    const returnTypeName = getReturnTypeForCrud(docKind, entityName);
 
     return {
       name: `${docKind} ${resourceSegment}`,
@@ -232,19 +261,63 @@ function resolveOperation(
   return {
     name: opName,
     httpMethod: 'POST',
-    routePath,
+    routePath: `${routePath}/${opName}`,
     resourceTypeName: resourceSegment,
     description,
     docKind: DocOperationKind.Action,
     actionOrFunctionName: opName,
-    returnTypeName: getReturnTypeName(operation),
+    returnTypeName: getActionReturnTypeName(operation),
   };
 }
 
 /**
- * Extract the return type name from an operation.
+ * Derive the return type name for CRUD operations from the entity name
+ * and operation kind. This avoids parsing complex Union response types.
  */
-function getReturnTypeName(operation: Operation): string | undefined {
+function getReturnTypeForCrud(
+  docKind: DocOperationKind,
+  entityName: string | undefined,
+): string | undefined {
+  if (!entityName) return undefined;
+
+  switch (docKind) {
+    case DocOperationKind.ListCollection:
+      return `${entityName} collection`;
+    case DocOperationKind.GetResource:
+    case DocOperationKind.PostCreate:
+    case DocOperationKind.Update:
+      return entityName;
+    case DocOperationKind.Delete:
+      return undefined;
+    default:
+      return entityName;
+  }
+}
+
+/**
+ * Extract the return type name for action/function operations.
+ * Inspects the operation's source template arguments (e.g., Action<TReturnType>)
+ * to find the actual return type.
+ */
+function getActionReturnTypeName(operation: Operation): string | undefined {
+  // Check the source operation's template mapper for the return type argument
+  if (operation.sourceOperation?.templateMapper?.args) {
+    for (const arg of operation.sourceOperation.templateMapper.args) {
+      if (arg.entityKind === 'Type') {
+        if (arg.kind === 'Intrinsic' && arg.name === 'void') {
+          return undefined;
+        }
+        if (arg.kind === 'Model' && arg.name) {
+          return arg.name;
+        }
+        if (arg.kind === 'Scalar' && arg.name) {
+          return arg.name;
+        }
+      }
+    }
+  }
+
+  // Fallback: check the operation's direct return type
   const returnType = operation.returnType;
   if (returnType.kind === 'Model') {
     return returnType.name || undefined;
@@ -252,5 +325,5 @@ function getReturnTypeName(operation: Operation): string | undefined {
   if (returnType.kind === 'Intrinsic' && returnType.name === 'void') {
     return undefined;
   }
-  return returnType.kind;
+  return undefined;
 }

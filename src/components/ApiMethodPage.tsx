@@ -72,8 +72,17 @@ function renderResponse(op: ResolvedOperation): Children {
       'If successful, this method returns a `204 No Content` response code.\n',
     ];
   }
+
+  // Handle collection types (e.g., "appQuotaSettings collection")
+  const isCollection = returnType.endsWith(' collection');
+  const baseType = isCollection
+    ? returnType.replace(' collection', '')
+    : returnType;
+  const linkPath = `../resources/${baseType.toLowerCase()}.md`;
+  const statusCode = op.docKind === 'post' ? '201 Created' : '200 OK';
+
   return [
     '\n## Response\n\n',
-    `If successful, this method returns a \`200 OK\` response code and a [${returnType}](../resources/${returnType.toLowerCase()}.md) object in the response body.\n`,
+    `If successful, this method returns a \`${statusCode}\` response code and a [${returnType}](${linkPath}) object in the response body.\n`,
   ];
 }

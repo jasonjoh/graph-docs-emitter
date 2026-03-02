@@ -49,8 +49,13 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   // Build operation map: entity name -> operations
   const operationsByEntity = new Map<string, ResolvedOperation[]>();
   for (const route of types.routes) {
-    const ops = resolveOperationsFromRoute(program, route, types.entities);
     const entityName = getEntityNameForRoute(route);
+    const ops = resolveOperationsFromRoute(
+      program,
+      route,
+      types.entities,
+      entityName,
+    );
     if (entityName && ops.length > 0) {
       const existing = operationsByEntity.get(entityName) ?? [];
       existing.push(...ops);
