@@ -13,6 +13,7 @@ import {
 export interface ApiMethodPageProps {
   operation: ResolvedOperation;
   namespace: string;
+  filename: string;
   apiVersion?: string;
   msDate?: string;
   author?: string;
@@ -26,6 +27,8 @@ export function ApiMethodPage(props: ApiMethodPageProps): Children {
   const title = op.name;
   const desc = getDescription(op);
   const isBeta = props.apiVersion === 'beta';
+  const permissionName =
+    props.filename.replace(/\.md$/, '') + '-permissions';
 
   return [
     <YamlFrontMatter
@@ -43,7 +46,9 @@ export function ApiMethodPage(props: ApiMethodPageProps): Children {
       : '',
     desc + '\n',
     '\n## Permissions\n\n',
-    'Choose the permission or permissions marked as least privileged for this API. Use a higher privileged permission or permissions [only if your app requires it](/graph/permissions-overview#best-practices-for-using-microsoft-graph-permissions). For details about delegated and application permissions, see [Permission types](/graph/permissions-overview#permission-types). To learn more about these permissions, see the [permissions reference](/graph/permissions-reference).\n',
+    'Choose the permission or permissions marked as least privileged for this API. Use a higher privileged permission or permissions [only if your app requires it](/graph/permissions-overview#best-practices-for-using-microsoft-graph-permissions). For details about delegated and application permissions, see [Permission types](/graph/permissions-overview#permission-types). To learn more about these permissions, see the [permissions reference](/graph/permissions-reference).\n\n',
+    `<!-- {\n  "blockType": "permissions",\n  "name": "${permissionName}"\n}\n-->\n\n`,
+    `[!INCLUDE [permissions-table](../includes/permissions/${permissionName}.md)]\n`,
     '\n## HTTP request\n\n',
     '```http\n',
     `${op.httpMethod.toUpperCase()} /${op.routePath}\n`,

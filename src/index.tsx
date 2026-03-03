@@ -136,6 +136,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
             <ApiMethodPage
               operation={page.op}
               namespace={page.ns}
+              filename={page.filename}
               apiVersion={apiVersion}
               msDate={msDate}
               author={author}
