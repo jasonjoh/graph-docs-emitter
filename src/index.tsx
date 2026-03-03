@@ -4,7 +4,7 @@
 // cSpell:ignore msgraph
 
 /** @jsxImportSource @alloy-js/core */
-import { EmitContext, Namespace } from '@typespec/compiler';
+import { EmitContext, Model, Namespace } from '@typespec/compiler';
 import { Output, SourceFile, SourceDirectory } from '@alloy-js/core';
 import { writeOutput } from '@typespec/emitter-framework';
 import { GraphDocsEmitterOptions } from './lib.js';
@@ -64,8 +64,12 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   }
 
   // Collect all method pages
-  const methodPages: { filename: string; op: ResolvedOperation; ns: string }[] =
-    [];
+  const methodPages: {
+    filename: string;
+    op: ResolvedOperation;
+    ns: string;
+    entityModel: Model | undefined;
+  }[] = [];
   for (const [entityName, ops] of operationsByEntity) {
     for (const op of ops) {
       const entity = types.entities.find((e) => e.name === entityName);
@@ -76,6 +80,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
         filename: getMethodFilename(op, entityName),
         op,
         ns,
+        entityModel: entity?.model,
       });
     }
   }
@@ -137,6 +142,8 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               operation={page.op}
               namespace={page.ns}
               filename={page.filename}
+              entityModel={page.entityModel}
+              program={program}
               apiVersion={apiVersion}
               msDate={msDate}
               author={author}

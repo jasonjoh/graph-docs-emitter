@@ -3,17 +3,27 @@
 
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
+import { Model, Program } from '@typespec/compiler';
+import {
+  isContains,
+  isComputed,
+  isImmutable,
+  isReadOnly,
+} from '@microsoft/typespec-msgraph';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import {
   ResolvedOperation,
   DocOperationKind,
   getStandardCrudDescription,
 } from '../utils/operation-resolver.js';
+import { formatJsonValue } from '../utils/type-formatter.js';
 
 export interface ApiMethodPageProps {
   operation: ResolvedOperation;
   namespace: string;
   filename: string;
+  program: Program;
+  entityModel?: Model;
   apiVersion?: string;
   msDate?: string;
   author?: string;
@@ -27,8 +37,7 @@ export function ApiMethodPage(props: ApiMethodPageProps): Children {
   const title = op.name;
   const desc = getDescription(op);
   const isBeta = props.apiVersion === 'beta';
-  const permissionName =
-    props.filename.replace(/\.md$/, '') + '-permissions';
+  const permissionName = props.filename.replace(/\.md$/, '') + '-permissions';
 
   return [
     <YamlFrontMatter
@@ -61,7 +70,7 @@ export function ApiMethodPage(props: ApiMethodPageProps): Children {
     renderContentTypeHeader(op),
     renderRequestBody(op),
     renderResponse(op),
-    renderExample(op),
+    renderExample(op, props),
   ];
 }
 
@@ -134,7 +143,10 @@ function renderResponse(op: ResolvedOperation): Children {
   ];
 }
 
-function renderExample(op: ResolvedOperation): Children {
+function renderExample(
+  op: ResolvedOperation,
+  props: ApiMethodPageProps,
+): Children {
   const returnType = op.returnTypeName;
   const statusCode =
     op.docKind === 'delete'
@@ -142,13 +154,23 @@ function renderExample(op: ResolvedOperation): Children {
       : op.docKind === 'post'
         ? '201 Created'
         : '200 OK';
+  const requestName = props.filename.replace(/\.md$/, '');
+  const ns = props.namespace;
+  const hasRequestBody =
+    op.httpMethod.toUpperCase() !== 'GET' &&
+    op.httpMethod.toUpperCase() !== 'DELETE';
 
-  return [
+  const result: (string | Children)[] = [
     '\n## Example\n\n',
     '### Request\n\n',
     'The following example shows a request.\n\n',
+    `<!-- {\n  "blockType": "request",\n  "name": "${requestName}"\n}\n-->\n\n`,
     '```http\n',
-    `${op.httpMethod.toUpperCase()} /${op.routePath}\n`,
+    `${op.httpMethod.toUpperCase()} https://graph.microsoft.com/${props.apiVersion ?? 'v1.0'}/${op.routePath}\n`,
+    hasRequestBody ? 'Content-type: application/json\n' : '',
+    hasRequestBody && props.entityModel
+      ? '\n' + buildJsonBody(props, true) + '\n'
+      : '',
     '```\n',
     '\n### Response\n\n',
     'The following example shows the response.',
@@ -156,9 +178,95 @@ function renderExample(op: ResolvedOperation): Children {
       ? ' The response shown here might be shortened for readability.'
       : '',
     '\n\n',
-    '```http\n',
-    `HTTP/1.1 ${statusCode}\n`,
-    returnType ? 'Content-type: application/json\n' : '',
-    '```\n',
   ];
+
+  if (returnType) {
+    const isCollection = op.docKind === DocOperationKind.ListCollection;
+    const baseType = returnType.replace(' collection', '');
+    const odataType = `${ns}.${baseType}`;
+    const collectionProp = isCollection ? ',\n  "isCollection": true' : '';
+    result.push(
+      `<!-- {\n  "blockType": "response",\n  "truncated": true,\n  "@odata.type": "${odataType}"${collectionProp}\n}\n-->\n\n`,
+    );
+    result.push('```http\n');
+    result.push(`HTTP/1.1 ${statusCode}\n`);
+    result.push('Content-type: application/json\n');
+    if (props.entityModel) {
+      result.push('\n');
+      if (op.docKind === DocOperationKind.ListCollection) {
+        result.push(buildCollectionJsonBody(props, ns));
+      } else {
+        result.push(buildJsonBody(props));
+      }
+      result.push('\n');
+    }
+    result.push('```\n');
+  } else {
+    result.push(
+      `<!-- {\n  "blockType": "response",\n  "truncated": true\n}\n-->\n\n`,
+    );
+    result.push('```http\n');
+    result.push(`HTTP/1.1 ${statusCode}\n`);
+    result.push('```\n');
+  }
+
+  return result;
+}
+
+/**
+ * Build a JSON body from the entity model's properties.
+ * When forRequest is true, excludes computed, immutable, and
+ * readOnly properties (not settable by the caller).
+ */
+function buildJsonBody(props: ApiMethodPageProps, forRequest = false): string {
+  const model = props.entityModel;
+  if (!model) return '{}';
+
+  const ns = props.namespace ?? 'microsoft.graph';
+  const program = props.program;
+  const entries: string[] = [];
+
+  if (model.name) {
+    entries.push(`  "@odata.type": "#${ns}.${model.name}"`);
+  }
+
+  for (const [name, property] of model.properties) {
+    if (isContains(program, property)) continue;
+    if (
+      forRequest &&
+      (isComputed(program, property) ||
+        isImmutable(program, property) ||
+        isReadOnly(program, property))
+    ) {
+      continue;
+    }
+    entries.push(`  "${name}": ${formatJsonValue(property.type)}`);
+  }
+
+  return '{\n' + entries.join(',\n') + '\n}';
+}
+
+/**
+ * Build a collection response JSON body.
+ */
+function buildCollectionJsonBody(
+  props: ApiMethodPageProps,
+  ns: string,
+): string {
+  const model = props.entityModel;
+  if (!model) return '{}';
+
+  const innerBody = buildJsonBody(props)
+    .split('\n')
+    .map((l) => '    ' + l)
+    .join('\n');
+
+  return (
+    '{\n' +
+    `  "@odata.context": "https://graph.microsoft.com/$metadata#${ns}",\n` +
+    '  "value": [\n' +
+    innerBody +
+    '\n  ]\n' +
+    '}'
+  );
 }
