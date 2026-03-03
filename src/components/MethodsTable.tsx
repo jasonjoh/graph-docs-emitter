@@ -3,7 +3,10 @@
 
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
-import { ResolvedOperation } from '../utils/operation-resolver.js';
+import {
+  ResolvedOperation,
+  DocOperationKind,
+} from '../utils/operation-resolver.js';
 
 export interface MethodsTableProps {
   operations: ResolvedOperation[];
@@ -11,15 +14,32 @@ export interface MethodsTableProps {
   getMethodFilename: (op: ResolvedOperation) => string;
 }
 
+/** CRUD sort order: List, Create, Get, Update, Delete first */
+const CRUD_ORDER: Record<string, number> = {
+  [DocOperationKind.ListCollection]: 0,
+  [DocOperationKind.PostCreate]: 1,
+  [DocOperationKind.GetResource]: 2,
+  [DocOperationKind.Update]: 3,
+  [DocOperationKind.Delete]: 4,
+};
+
 /**
  * Renders the ## Methods section with a table linking to individual method pages.
  */
 export function MethodsTable(props: MethodsTableProps): Children {
   if (props.operations.length === 0) return [];
 
-  const rows = props.operations.map((op) => {
+  // Sort: CRUD operations first in standard order, then others alphabetically
+  const sorted = [...props.operations].sort((a, b) => {
+    const aOrder = CRUD_ORDER[a.docKind] ?? 99;
+    const bOrder = CRUD_ORDER[b.docKind] ?? 99;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return a.name.localeCompare(b.name);
+  });
+
+  const rows = sorted.map((op) => {
     const filename = props.getMethodFilename(op);
-    const returnType = op.returnTypeName ?? 'None';
+    const returnType = op.returnTypeName ? `\`${op.returnTypeName}\`` : 'None';
     const description = op.description ?? '';
     return `| [${op.name}](../api/${filename}) | ${returnType} | ${description} |`;
   });
@@ -27,7 +47,7 @@ export function MethodsTable(props: MethodsTableProps): Children {
   return [
     '\n## Methods\n\n',
     '| Method | Return Type | Description |\n',
-    '|:---|:---|:---|\n',
+    '|:--|:--|:--|\n',
     ...rows.map((r) => r + '\n'),
   ];
 }

@@ -10,6 +10,7 @@ import { formatJsonValue } from '../utils/type-formatter.js';
 export interface JsonRepresentationProps {
   program: Program;
   model: Model;
+  namespace?: string;
 }
 
 /**
@@ -19,11 +20,12 @@ export function JsonRepresentation(props: JsonRepresentationProps): Children {
   const lines: string[] = [];
   lines.push('{');
 
+  const ns = props.namespace ?? 'microsoft.graph';
   const entries: string[] = [];
 
   // Add @odata.type
   if (props.model.name) {
-    entries.push(`  "@odata.type": "#microsoft.graph.${props.model.name}"`);
+    entries.push(`  "@odata.type": "#${ns}.${props.model.name}"`);
   }
 
   for (const [name, property] of props.model.properties) {
@@ -37,15 +39,27 @@ export function JsonRepresentation(props: JsonRepresentationProps): Children {
   lines.push('}');
 
   const jsonBlock = lines.join('\n');
+  const odataType = `${ns}.${props.model.name ?? ''}`;
 
   return [
     '\n## JSON representation\n\n',
     'The following JSON representation shows the resource type.\n\n',
-    '<!-- {\n  "blockType": "resource",\n  "@odata.type": "microsoft.graph.',
-    props.model.name ?? '',
-    '"\n} -->\n',
+    '<!-- {\n',
+    '  "blockType": "resource",\n',
+    '  "keyProperty": "id",\n',
+    '  "optionalProperties": [],\n',
+    `  "@odata.type": "${odataType}"\n`,
+    '} -->\n\n',
     '```json\n',
     jsonBlock,
     '\n```\n',
+    '\n<!-- {\n',
+    '  "type": "#page.annotation",\n',
+    `  "description": "${props.model.name ?? ''} resource",\n`,
+    '  "keywords": "",\n',
+    '  "section": "documentation",\n',
+    '  "tocPath": "",\n',
+    '  "suppressions": []\n',
+    '} -->\n',
   ];
 }

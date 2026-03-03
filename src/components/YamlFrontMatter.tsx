@@ -17,16 +17,17 @@ export interface YamlFrontMatterProps {
  */
 export function YamlFrontMatter(props: YamlFrontMatterProps): Children {
   const today = new Date();
-  const defaultDate =
-    `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
+  const defaultDate = `${String(today.getMonth() + 1).padStart(2, '0')}/${String(today.getDate()).padStart(2, '0')}/${today.getFullYear()}`;
   const date = props.msDate ?? defaultDate;
   return [
     '---\n',
     `title: "${props.title}"\n`,
     `description: "${escapeYaml(props.description)}"\n`,
     `author: ${props.author ? props.author : 'YOUR_GITHUB_USERNAME'}\n`,
-    `doc_type: ${props.docType}\n`,
+    'ms.topic: reference\n',
     `ms.date: ${date}\n`,
+    'ms.localizationpriority: medium\n',
+    `doc_type: ${props.docType}\n`,
     '---\n',
   ];
 }

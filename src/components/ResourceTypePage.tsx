@@ -18,6 +18,7 @@ export interface ResourceTypePageProps {
   namespace: string;
   operations: ResolvedOperation[];
   getMethodFilename: (op: ResolvedOperation) => string;
+  apiVersion?: string;
   msDate?: string;
   author?: string;
 }
@@ -28,6 +29,7 @@ export interface ResourceTypePageProps {
 export function ResourceTypePage(props: ResourceTypePageProps): Children {
   const title = `${props.model.name} resource type`;
   const desc = props.description ?? `Represents a ${props.model.name}.`;
+  const isBeta = props.apiVersion === 'beta';
 
   return [
     <YamlFrontMatter
@@ -40,6 +42,9 @@ export function ResourceTypePage(props: ResourceTypePageProps): Children {
     '\n',
     `# ${title}\n\n`,
     `Namespace: ${props.namespace}\n\n`,
+    isBeta
+      ? '[!INCLUDE [beta-disclaimer](../../includes/beta-disclaimer.md)]\n\n'
+      : '',
     desc + '\n',
     <MethodsTable
       operations={props.operations}
@@ -47,6 +52,10 @@ export function ResourceTypePage(props: ResourceTypePageProps): Children {
     />,
     <PropertiesTable program={props.program} model={props.model} />,
     <RelationshipsTable program={props.program} model={props.model} />,
-    <JsonRepresentation program={props.program} model={props.model} />,
+    <JsonRepresentation
+      program={props.program}
+      model={props.model}
+      namespace={props.namespace}
+    />,
   ];
 }

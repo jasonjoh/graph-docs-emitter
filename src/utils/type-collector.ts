@@ -20,6 +20,7 @@ import {
   hasPublicNamespace,
   hasGraphRoute,
   getGraphRoutePaths,
+  getAgsAttributes,
 } from '@microsoft/typespec-msgraph';
 
 /**
@@ -114,9 +115,31 @@ function isLibraryType(type: Model | Enum | Interface): boolean {
 }
 
 /**
+ * Check if a type has `@agsAttribute("IsHidden", "true")`.
+ */
+function isHidden(program: Program, type: Model | Enum | Interface): boolean {
+  const attrs = getAgsAttributes(program, type);
+  return attrs.get('IsHidden') === 'true';
+}
+
+/**
+ * Normalize description text to ensure proper spacing between sentences.
+ * TypeSpec's getDoc() may concatenate multiple doc comment blocks
+ * without spaces (e.g., "turn.Represents" instead of "turn. Represents").
+ */
+export function normalizeDescription(
+  text: string | undefined,
+): string | undefined {
+  if (!text) return text;
+  // Insert a space after sentence-ending punctuation (.!?) that is
+  // immediately followed by an uppercase letter (start of new sentence)
+  return text.replace(/([.!?])([A-Z])/g, '$1 $2');
+}
+
+/**
  * Walk the TypeSpec program and collect all Graph-relevant types.
  * Only includes types defined in @publicNamespace namespaces,
- * filtering out library/reference types.
+ * filtering out library/reference types and hidden types.
  */
 export function collectGraphTypes(program: Program): CollectedTypes {
   const entities: GraphEntityInfo[] = [];
@@ -139,8 +162,12 @@ export function collectGraphTypes(program: Program): CollectedTypes {
       if (isOperationParameters(program, model)) return;
       // Skip anonymous models
       if (!model.name || model.name === '') return;
+      // Skip hidden models
+      if (isHidden(program, model)) return;
 
-      const description = getDoc(program, model) ?? undefined;
+      const description = normalizeDescription(
+        getDoc(program, model) ?? undefined,
+      );
 
       if (isEntity(program, model)) {
         entities.push({ name: model.name, model, description });
@@ -161,8 +188,12 @@ export function collectGraphTypes(program: Program): CollectedTypes {
       // Skip library-defined shared enums
       if (isLibraryType(enumType)) return;
       if (!enumType.name || enumType.name === '') return;
+      // Skip hidden enums
+      if (isHidden(program, enumType)) return;
 
-      const description = getDoc(program, enumType) ?? undefined;
+      const description = normalizeDescription(
+        getDoc(program, enumType) ?? undefined,
+      );
       enums.push({ name: enumType.name, enumType, description });
     },
 
@@ -171,6 +202,8 @@ export function collectGraphTypes(program: Program): CollectedTypes {
       if (!iface.namespace || !isInPublicNamespace(program, iface.namespace)) {
         return;
       }
+      // Skip hidden interfaces
+      if (isHidden(program, iface)) return;
 
       const paths = getGraphRoutePaths(program, iface);
       if (paths && paths.length > 0) {

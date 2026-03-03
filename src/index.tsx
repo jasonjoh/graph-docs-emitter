@@ -16,7 +16,7 @@ import {
 import { getTypeFilename, getMethodFilename } from './utils/filename.js';
 import { ResourceTypePage } from './components/ResourceTypePage.jsx';
 import { ApiMethodPage } from './components/ApiMethodPage.jsx';
-import { EnumTypePage } from './components/EnumTypePage.jsx';
+import { EnumsPage } from './components/EnumsPage.jsx';
 import { ComplexTypePage } from './components/ComplexTypePage.jsx';
 import {
   getPublicNamespaceName,
@@ -83,6 +83,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   const outputDir = context.options['output-dir'] ?? context.emitterOutputDir;
   const msDate = context.options['ms-date'];
   const author = context.options.author;
+  const apiVersion = context.options['api-version'] ?? 'v1.0';
 
   await writeOutput(
     program,
@@ -97,6 +98,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               namespace={getNamespaceForType(entity.model.namespace)}
               operations={operationsByEntity.get(entity.name) ?? []}
               getMethodFilename={(op) => getMethodFilename(op, entity.name)}
+              apiVersion={apiVersion}
               msDate={msDate}
               author={author}
             />
@@ -109,23 +111,24 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               model={complex.model}
               description={complex.description}
               namespace={getNamespaceForType(complex.model.namespace)}
+              apiVersion={apiVersion}
               msDate={msDate}
               author={author}
             />
           </SourceFile>
         ))}
-        {types.enums.map((enumInfo) => (
-          <SourceFile path={getTypeFilename(enumInfo.name)} filetype='md'>
-            <EnumTypePage
+        {types.enums.length > 0 && (
+          <SourceFile path='enums.md' filetype='md'>
+            <EnumsPage
               program={program}
-              enumType={enumInfo.enumType}
-              description={enumInfo.description}
-              namespace={getNamespaceForType(enumInfo.enumType.namespace)}
+              enums={types.enums}
+              namespace={DEFAULT_NAMESPACE}
+              apiVersion={apiVersion}
               msDate={msDate}
               author={author}
             />
           </SourceFile>
-        ))}
+        )}
       </SourceDirectory>
       <SourceDirectory path='api'>
         {methodPages.map((page) => (
@@ -133,6 +136,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
             <ApiMethodPage
               operation={page.op}
               namespace={page.ns}
+              apiVersion={apiVersion}
               msDate={msDate}
               author={author}
             />

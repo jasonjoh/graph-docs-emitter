@@ -45,7 +45,7 @@ export function PropertiesTable(props: PropertiesTableProps): Children {
   return [
     '\n## Properties\n\n',
     '| Property | Type | Description |\n',
-    '|:---|:---|:---|\n',
+    '|:--|:--|:--|\n',
     ...rows.map((r) => r + '\n'),
   ];
 }

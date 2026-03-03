@@ -2,7 +2,12 @@
 // Licensed under the MIT license.
 
 import { Program, Operation, getDoc } from '@typespec/compiler';
-import { GraphRouteInfo, GraphEntityInfo } from './type-collector.js';
+import {
+  GraphRouteInfo,
+  GraphEntityInfo,
+  normalizeDescription,
+} from './type-collector.js';
+import { getAgsAttributes } from '@microsoft/typespec-msgraph';
 
 /**
  * Represents a resolved HTTP operation ready for documentation generation.
@@ -200,7 +205,13 @@ function resolveOperation(
   isCollection: boolean,
   entityName: string | undefined,
 ): ResolvedOperation | undefined {
-  const description = getDoc(program, operation) ?? undefined;
+  const description = normalizeDescription(
+    getDoc(program, operation) ?? undefined,
+  );
+
+  // Skip hidden operations
+  const attrs = getAgsAttributes(program, operation);
+  if (attrs.get('IsHidden') === 'true') return undefined;
 
   // Check the operation name against known patterns
   // Prefer source operation name (template name) over the alias name
@@ -219,8 +230,9 @@ function resolveOperation(
       pattern.docKind === DocOperationKind.Function
     ) {
       const returnTypeName = getActionReturnTypeName(operation);
+      const displayName = entityName ? `${entityName}: ${opName}` : opName;
       return {
-        name: opName,
+        name: displayName,
         httpMethod: pattern.httpMethod,
         routePath: `${routePath}/${opName}`,
         resourceTypeName: resourceSegment,
@@ -244,9 +256,10 @@ function resolveOperation(
     const parentSegment = getParentSegment(routePath);
     // Derive return type from entity name and operation kind
     const returnTypeName = getReturnTypeForCrud(docKind, entityName);
+    const displayName = getCrudDisplayName(docKind, entityName);
 
     return {
-      name: `${docKind} ${resourceSegment}`,
+      name: displayName,
       httpMethod: pattern.httpMethod,
       routePath,
       resourceTypeName: resourceSegment,
@@ -258,8 +271,9 @@ function resolveOperation(
   }
 
   // If not a known pattern, treat as an action
+  const displayName = entityName ? `${entityName}: ${opName}` : opName;
   return {
-    name: opName,
+    name: displayName,
     httpMethod: 'POST',
     routePath: `${routePath}/${opName}`,
     resourceTypeName: resourceSegment,
@@ -268,6 +282,55 @@ function resolveOperation(
     actionOrFunctionName: opName,
     returnTypeName: getActionReturnTypeName(operation),
   };
+}
+
+/**
+ * Get the display name for a CRUD operation matching the template format.
+ * Uses capitalized verb + entity name: "List configurationMonitor"
+ */
+function getCrudDisplayName(
+  docKind: DocOperationKind,
+  entityName: string | undefined,
+): string {
+  const name = entityName ?? 'resource';
+  switch (docKind) {
+    case DocOperationKind.ListCollection:
+      return `List ${name}`;
+    case DocOperationKind.GetResource:
+      return `Get ${name}`;
+    case DocOperationKind.PostCreate:
+      return `Create ${name}`;
+    case DocOperationKind.Update:
+      return `Update ${name}`;
+    case DocOperationKind.Delete:
+      return `Delete ${name}`;
+    default:
+      return `${docKind} ${name}`;
+  }
+}
+
+/**
+ * Get the standard CRUD description for an operation when no doc comment exists.
+ */
+export function getStandardCrudDescription(
+  docKind: DocOperationKind,
+  entityName: string | undefined,
+): string {
+  const name = entityName ?? 'resource';
+  switch (docKind) {
+    case DocOperationKind.ListCollection:
+      return `Get a list of ${name} objects.`;
+    case DocOperationKind.GetResource:
+      return `Retrieve the properties and relationships of a ${name} object.`;
+    case DocOperationKind.PostCreate:
+      return `Create a new ${name} object.`;
+    case DocOperationKind.Update:
+      return `Update a ${name} object.`;
+    case DocOperationKind.Delete:
+      return `Delete a ${name} object.`;
+    default:
+      return `${docKind} ${name}.`;
+  }
 }
 
 /**

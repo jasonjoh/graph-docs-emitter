@@ -11,7 +11,7 @@ import { createGraphDocsTestRunner } from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import { PropertiesTable } from '../../src/components/PropertiesTable.jsx';
 import { RelationshipsTable } from '../../src/components/RelationshipsTable.jsx';
-import { EnumMembersTable } from '../../src/components/EnumMembersTable.jsx';
+import { EnumsPage } from '../../src/components/EnumsPage.jsx';
 import { JsonRepresentation } from '../../src/components/JsonRepresentation.jsx';
 import { YamlFrontMatter } from '../../src/components/YamlFrontMatter.jsx';
 import { MethodsTable } from '../../src/components/MethodsTable.jsx';
@@ -44,6 +44,8 @@ describe('YamlFrontMatter', () => {
     expect(result).toContain('description: "A test description."');
     expect(result).toContain('doc_type: resourcePageType');
     expect(result).toContain('ms.date: 01/15/2025');
+    expect(result).toContain('ms.topic: reference');
+    expect(result).toContain('ms.localizationpriority: medium');
   });
 
   it('escapes quotes in description', () => {
@@ -201,12 +203,13 @@ describe('RelationshipsTable', () => {
       <RelationshipsTable program={runner.program} model={entity.model} />,
     );
 
-    expect(result).not.toContain('## Relationships');
+    expect(result).toContain('## Relationships');
+    expect(result).toContain('None.');
   });
 });
 
-describe('EnumMembersTable', () => {
-  it('renders enum members with values', async () => {
+describe('EnumsPage', () => {
+  it('renders all enums in a single page', async () => {
     await runner.compile(`
       using MsGraph;
 
@@ -223,18 +226,18 @@ describe('EnumMembersTable', () => {
     `);
 
     const types = collectGraphTypes(runner.program);
-    const enumInfo = types.enums.find((e) => e.name === 'testStatus')!;
 
     const result = renderToString(
-      <EnumMembersTable
+      <EnumsPage
         program={runner.program}
-        enumType={enumInfo.enumType}
+        enums={types.enums}
+        namespace='microsoft.graph'
       />,
     );
 
-    expect(result).toContain('| Member | Value | Description |');
+    expect(result).toContain('### testStatus values');
+    expect(result).toContain('| Member |');
     expect(result).toContain('| active |');
-    expect(result).toContain('The item is active.');
     expect(result).toContain('| inactive |');
     expect(result).toContain('| unknownFutureValue |');
   });

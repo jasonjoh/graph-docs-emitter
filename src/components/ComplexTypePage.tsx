@@ -13,6 +13,7 @@ export interface ComplexTypePageProps {
   model: Model;
   description: string | undefined;
   namespace: string;
+  apiVersion?: string;
   msDate?: string;
   author?: string;
 }
@@ -24,6 +25,7 @@ export interface ComplexTypePageProps {
 export function ComplexTypePage(props: ComplexTypePageProps): Children {
   const title = `${props.model.name} resource type`;
   const desc = props.description ?? `Represents a ${props.model.name}.`;
+  const isBeta = props.apiVersion === 'beta';
 
   return [
     <YamlFrontMatter
@@ -36,8 +38,15 @@ export function ComplexTypePage(props: ComplexTypePageProps): Children {
     '\n',
     `# ${title}\n\n`,
     `Namespace: ${props.namespace}\n\n`,
+    isBeta
+      ? '[!INCLUDE [beta-disclaimer](../../includes/beta-disclaimer.md)]\n\n'
+      : '',
     desc + '\n',
     <PropertiesTable program={props.program} model={props.model} />,
-    <JsonRepresentation program={props.program} model={props.model} />,
+    <JsonRepresentation
+      program={props.program}
+      model={props.model}
+      namespace={props.namespace}
+    />,
   ];
 }
