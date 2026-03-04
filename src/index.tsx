@@ -101,7 +101,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   await writeOutput(
     program,
     <Output>
-      <SourceDirectory path='resources'>
+      <SourceDirectory path={`${apiVersion}/resources`}>
         {types.entities.map((entity) => (
           <SourceFile path={getTypeFilename(entity.name)} filetype='md'>
             <ResourceTypePage
@@ -143,7 +143,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
           </SourceFile>
         )}
       </SourceDirectory>
-      <SourceDirectory path='api'>
+      <SourceDirectory path={`${apiVersion}/api`}>
         {methodPages.map((page) => (
           <SourceFile path={page.filename} filetype='md'>
             <ApiMethodPage
