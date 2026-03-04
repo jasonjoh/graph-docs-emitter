@@ -100,50 +100,43 @@ const OPERATION_PATTERNS: Record<
   Function: { httpMethod: 'GET', docKind: DocOperationKind.Function },
 };
 
-/**
- * Determine if a route path targets a collection (no {id} at the end)
- * or a single resource (has {id} at the end).
- */
-function isCollectionRoute(routePath: string): boolean {
-  const segments = routePath.split('/');
-  const last = segments[segments.length - 1];
-  return !last.startsWith('{');
+interface ParsedRouteSegments {
+  /** Last non-parameter segment (the resource name) */
+  resource: string;
+  /** Previous non-parameter segment (the parent entity), if any */
+  parent: string | undefined;
+  /** True if the route targets a collection (no {id} at the end) */
+  isCollection: boolean;
 }
 
 /**
- * Extract the resource name from the last non-parameter segment of a route.
- * E.g., "copilot/conversations/{conversationId}" -> "conversations"
+ * Parse a route path into its resource segment, parent segment,
+ * and whether it targets a collection or single resource.
+ *
+ * E.g., "copilot/conversations/{conversationId}/messages"
+ *   -> { resource: "messages", parent: "conversations", isCollection: true }
  */
-function getResourceSegment(routePath: string): string {
+function parseRouteSegments(routePath: string): ParsedRouteSegments {
   const segments = routePath.split('/');
-  // Walk backwards to find the last non-parameter segment
-  for (let i = segments.length - 1; i >= 0; i--) {
-    if (!segments[i].startsWith('{')) {
-      return segments[i];
-    }
-  }
-  return segments[0];
-}
+  const isCollection = !segments[segments.length - 1].startsWith('{');
 
-/**
- * Get the parent entity segment from a route path.
- * E.g., "copilot/conversations/{conversationId}/messages" -> "conversations"
- */
-function getParentSegment(routePath: string): string | undefined {
-  const segments = routePath.split('/');
-  // Find the resource segment, then look for the entity segment before it
+  let resource = segments[0];
+  let parent: string | undefined;
+
   for (let i = segments.length - 1; i >= 0; i--) {
     if (!segments[i].startsWith('{')) {
-      // This is the resource segment, look for the previous non-param segment
+      resource = segments[i];
       for (let j = i - 1; j >= 0; j--) {
         if (!segments[j].startsWith('{')) {
-          return segments[j];
+          parent = segments[j];
+          break;
         }
       }
-      return undefined;
+      break;
     }
   }
-  return undefined;
+
+  return { resource, parent, isCollection };
 }
 
 /**
@@ -159,8 +152,8 @@ export function resolveOperationsFromRoute(
 ): ResolvedOperation[] {
   const resolved: ResolvedOperation[] = [];
   const routePath = route.path;
-  const resourceSegment = getResourceSegment(routePath);
-  const isCollection = isCollectionRoute(routePath);
+  const { resource: resourceSegment, isCollection } =
+    parseRouteSegments(routePath);
 
   for (const [opName, operation] of route.iface.operations) {
     const resolved_op = resolveOperation(
@@ -256,7 +249,7 @@ function resolveOperation(
       docKind = DocOperationKind.ListCollection;
     }
 
-    const parentSegment = getParentSegment(routePath);
+    const { parent: parentSegment } = parseRouteSegments(routePath);
     // Derive return type from entity name and operation kind
     const returnTypeName = getReturnTypeForCrud(docKind, entityName);
     const displayName = getCrudDisplayName(docKind, entityName);
