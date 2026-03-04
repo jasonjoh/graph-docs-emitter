@@ -1,27 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { DecoratorContext, Operation, Program } from '@typespec/compiler';
+import { createStateDecorator } from './state-decorator.js';
 
-const exampleResponseKey = Symbol('exampleResponse');
+const { set: setExampleResponse, get: getExampleResponse } =
+  createStateDecorator('exampleResponse');
 
 /**
  * `@exampleResponse` — attach a custom example response body to an operation.
  */
-export function $exampleResponse(
-  context: DecoratorContext,
-  target: Operation,
-  value: unknown,
-): void {
-  context.program.stateMap(exampleResponseKey).set(target, value);
-}
+export const $exampleResponse = setExampleResponse;
 
 /**
  * Retrieve the custom example response body for an operation, if any.
  */
-export function getExampleResponse(
-  program: Program,
-  target: Operation,
-): unknown | undefined {
-  return program.stateMap(exampleResponseKey).get(target);
-}
+export { getExampleResponse };

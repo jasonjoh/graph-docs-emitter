@@ -1,27 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { DecoratorContext, Operation, Program } from '@typespec/compiler';
+import { createStateDecorator } from './state-decorator.js';
 
-const exampleRequestKey = Symbol('exampleRequest');
+const { set: setExampleRequest, get: getExampleRequest } =
+  createStateDecorator('exampleRequest');
 
 /**
  * `@exampleRequest` — attach a custom example request body to an operation.
  */
-export function $exampleRequest(
-  context: DecoratorContext,
-  target: Operation,
-  value: unknown,
-): void {
-  context.program.stateMap(exampleRequestKey).set(target, value);
-}
+export const $exampleRequest = setExampleRequest;
 
 /**
  * Retrieve the custom example request body for an operation, if any.
  */
-export function getExampleRequest(
-  program: Program,
-  target: Operation,
-): unknown | undefined {
-  return program.stateMap(exampleRequestKey).get(target);
-}
+export { getExampleRequest };
