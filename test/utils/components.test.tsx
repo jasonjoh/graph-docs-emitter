@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-// cSpell:ignore jasonjoh testitem
+// cSpell:ignore jasonjoh testitem baseentity childentity
 
 /** @jsxImportSource @alloy-js/core */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -524,9 +524,7 @@ describe('Placeholder descriptions', () => {
     `);
 
     const types = collectGraphTypes(runner.program);
-    const complex = types.complexTypes.find(
-      (c) => c.name === 'testComplex',
-    )!;
+    const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
 
     const result = renderToString(
       <ComplexTypePage
@@ -559,9 +557,7 @@ describe('Placeholder descriptions', () => {
     `);
 
     const types = collectGraphTypes(runner.program);
-    const complex = types.complexTypes.find(
-      (c) => c.name === 'testComplex',
-    )!;
+    const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
 
     const result = renderToString(
       <ComplexTypePage
@@ -576,5 +572,553 @@ describe('Placeholder descriptions', () => {
     expect(result).not.toContain(
       '<!-- This file contains placeholder descriptions',
     );
+  });
+});
+
+describe('PropertiesTable - base model inheritance', () => {
+  it('includes properties inherited from base model', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model baseEntity {
+          /** The unique ID. */
+          @readOnly @computed @key id: string;
+          /** Base name. */
+          @computed baseProp: string;
+        }
+        @entity model childEntity extends baseEntity {
+          /** Child value. */
+          @computed childProp: int32;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const child = types.entities.find((e) => e.name === 'childEntity')!;
+
+    const result = renderToString(
+      <PropertiesTable program={runner.program} model={child.model} />,
+    );
+
+    expect(result).toContain('| childProp | Int32 | Child value. |');
+    expect(result).toContain('| baseProp | String | Base name. |');
+    expect(result).toContain('| id | String | The unique ID. |');
+  });
+
+  it('excludes @contains from inherited properties', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model item {
+          @readOnly @computed @key id: string;
+        }
+        @entity model baseEntity {
+          @readOnly @computed @key id: string;
+          @contains items: item[];
+          /** A value. */
+          @computed baseProp: string;
+        }
+        @entity model childEntity extends baseEntity {
+          /** Child value. */
+          @computed childProp: int32;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const child = types.entities.find((e) => e.name === 'childEntity')!;
+
+    const result = renderToString(
+      <PropertiesTable program={runner.program} model={child.model} />,
+    );
+
+    expect(result).not.toContain('items');
+    expect(result).toContain('| baseProp |');
+    expect(result).toContain('| childProp |');
+  });
+
+  it('sorts all properties (own + inherited) alphabetically', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model baseEntity {
+          /** An ID. */
+          @readOnly @computed @key id: string;
+          /** Zebra prop. */
+          @computed zebra: string;
+        }
+        @entity model childEntity extends baseEntity {
+          /** Alpha prop. */
+          @computed alpha: string;
+          /** Middle prop. */
+          @computed middle: int32;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const child = types.entities.find((e) => e.name === 'childEntity')!;
+
+    const result = renderToString(
+      <PropertiesTable program={runner.program} model={child.model} />,
+    );
+
+    const lines = result
+      .split('\n')
+      .filter(
+        (l: string) =>
+          l.startsWith('| alpha') ||
+          l.startsWith('| id') ||
+          l.startsWith('| middle') ||
+          l.startsWith('| zebra'),
+      );
+    expect(lines).toHaveLength(4);
+    expect(lines[0]).toContain('| alpha');
+    expect(lines[1]).toContain('| id');
+    expect(lines[2]).toContain('| middle');
+    expect(lines[3]).toContain('| zebra');
+  });
+});
+
+describe('RelationshipsTable - base model inheritance', () => {
+  it('includes @contains properties from base model', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model item {
+          @readOnly @computed @key id: string;
+        }
+        @entity model thing {
+          @readOnly @computed @key id: string;
+        }
+        @entity model baseEntity {
+          @readOnly @computed @key id: string;
+          /** Base items. */
+          @contains items: item[];
+        }
+        @entity model childEntity extends baseEntity {
+          /** Child things. */
+          @contains things: thing[];
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const child = types.entities.find((e) => e.name === 'childEntity')!;
+
+    const result = renderToString(
+      <RelationshipsTable program={runner.program} model={child.model} />,
+    );
+
+    expect(result).toContain('| items |');
+    expect(result).toContain('Base items.');
+    expect(result).toContain('| things |');
+    expect(result).toContain('Child things.');
+  });
+});
+
+describe('Beta disclaimer', () => {
+  it('ResourceTypePage renders beta disclaimer when apiVersion is beta', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          /** The ID. */
+          @readOnly @computed @key id: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <ResourceTypePage
+        program={runner.program}
+        model={entity.model}
+        description='A test entity.'
+        namespace='microsoft.graph'
+        operations={[]}
+        getMethodFilename={() => ''}
+        apiVersion='beta'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain('[!INCLUDE [beta-disclaimer');
+  });
+
+  it('ResourceTypePage omits beta disclaimer when apiVersion is v1.0', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          /** The ID. */
+          @readOnly @computed @key id: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <ResourceTypePage
+        program={runner.program}
+        model={entity.model}
+        description='A test entity.'
+        namespace='microsoft.graph'
+        operations={[]}
+        getMethodFilename={() => ''}
+        apiVersion='v1.0'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).not.toContain('[!INCLUDE [beta-disclaimer');
+  });
+
+  it('ComplexTypePage renders beta disclaimer when apiVersion is beta', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @complex model testComplex {
+          /** A value. */
+          value: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
+
+    const result = renderToString(
+      <ComplexTypePage
+        program={runner.program}
+        model={complex.model}
+        description='A complex type.'
+        namespace='microsoft.graph'
+        apiVersion='beta'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain('[!INCLUDE [beta-disclaimer');
+  });
+
+  it('EnumsPage renders beta disclaimer when apiVersion is beta', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        enum testEnum { a, unknownFutureValue }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+
+    const result = renderToString(
+      <EnumsPage
+        program={runner.program}
+        enums={types.enums}
+        namespace='microsoft.graph'
+        apiVersion='beta'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain('[!INCLUDE [beta-disclaimer');
+  });
+
+  it('EnumsPage omits beta disclaimer when apiVersion is not beta', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        enum testEnum { a, unknownFutureValue }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+
+    const result = renderToString(
+      <EnumsPage
+        program={runner.program}
+        enums={types.enums}
+        namespace='microsoft.graph'
+        apiVersion='v1.0'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).not.toContain('[!INCLUDE [beta-disclaimer');
+  });
+});
+
+describe('EnumsPage - sorting', () => {
+  it('sorts enums alphabetically', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        enum zebraEnum { z, unknownFutureValue }
+        enum alphaEnum { a, unknownFutureValue }
+        enum middleEnum { m, unknownFutureValue }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+
+    const result = renderToString(
+      <EnumsPage
+        program={runner.program}
+        enums={types.enums}
+        namespace='microsoft.graph'
+      />,
+    );
+
+    const alphaIdx = result.indexOf('### alphaEnum values');
+    const middleIdx = result.indexOf('### middleEnum values');
+    const zebraIdx = result.indexOf('### zebraEnum values');
+
+    expect(alphaIdx).toBeLessThan(middleIdx);
+    expect(middleIdx).toBeLessThan(zebraIdx);
+  });
+});
+
+describe('JsonRepresentation - edge cases', () => {
+  it('renders collection/array property as empty array', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          @computed tags: string[];
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain('"tags": []');
+  });
+
+  it('renders enum property as "String"', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        enum testStatus { active, inactive, unknownFutureValue }
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          @computed status: testStatus;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain('"status": "String"');
+  });
+
+  it('renders nullable property using underlying type', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          name: string | null;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain('"name": "String"');
+  });
+
+  it('renders nested model as @odata.type reference', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @complex model nested {
+          value: string;
+        }
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          @computed detail: nested;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain(
+      '"detail": {"@odata.type": "microsoft.graph.nested"}',
+    );
+  });
+
+  it('excludes @contains properties from JSON representation', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model child {
+          @readOnly @computed @key id: string;
+        }
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          @computed name: string;
+          @contains children: child[];
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).not.toContain('children');
+    expect(result).toContain('"name": "String"');
+  });
+
+  it('uses custom namespace in @odata.type', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation
+        program={runner.program}
+        model={entity.model}
+        namespace='microsoft.graph.beta'
+      />,
+    );
+
+    expect(result).toContain(
+      '"@odata.type": "#microsoft.graph.beta.testEntity"',
+    );
+  });
+});
+
+describe('ResourceTypePage - description fallback', () => {
+  it('uses default description when none provided', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          /** The ID. */
+          @readOnly @computed @key id: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <ResourceTypePage
+        program={runner.program}
+        model={entity.model}
+        description={undefined}
+        namespace='microsoft.graph'
+        operations={[]}
+        getMethodFilename={() => ''}
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain('Represents a testEntity.');
+  });
+});
+
+describe('ComplexTypePage - description fallback', () => {
+  it('uses default description when none provided', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @complex model testComplex {
+          /** A prop. */
+          value: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
+
+    const result = renderToString(
+      <ComplexTypePage
+        program={runner.program}
+        model={complex.model}
+        description={undefined}
+        namespace='microsoft.graph'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain('Represents a testComplex.');
   });
 });
