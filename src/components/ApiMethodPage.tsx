@@ -17,6 +17,8 @@ import {
   getStandardCrudDescription,
 } from '../utils/operation-resolver.js';
 import { formatJsonValue } from '../utils/type-formatter.js';
+import { getExampleRequest } from '../decorators/example-request.js';
+import { getExampleResponse } from '../decorators/example-response.js';
 
 export interface ApiMethodPageProps {
   operation: ResolvedOperation;
@@ -160,6 +162,19 @@ function renderExample(
     op.httpMethod.toUpperCase() !== 'GET' &&
     op.httpMethod.toUpperCase() !== 'DELETE';
 
+  // Check for custom examples from decorators
+  const customRequest = op.typespecOperation
+    ? getExampleRequest(props.program, op.typespecOperation)
+    : undefined;
+  const customResponse = op.typespecOperation
+    ? getExampleResponse(props.program, op.typespecOperation)
+    : undefined;
+
+  const requestBody = hasRequestBody
+    ? getRequestBodyJson(props, customRequest)
+    : '';
+  const responseBody = getResponseBodyJson(props, op, ns, customResponse);
+
   const result: (string | Children)[] = [
     '\n## Example\n\n',
     '### Request\n\n',
@@ -168,9 +183,7 @@ function renderExample(
     '```http\n',
     `${op.httpMethod.toUpperCase()} https://graph.microsoft.com/${props.apiVersion ?? 'v1.0'}/${op.routePath}\n`,
     hasRequestBody ? 'Content-type: application/json\n' : '',
-    hasRequestBody && props.entityModel
-      ? '\n' + buildJsonBody(props, true) + '\n'
-      : '',
+    requestBody ? '\n' + requestBody + '\n' : '',
     '```\n',
     '\n### Response\n\n',
     'The following example shows the response.',
@@ -191,14 +204,8 @@ function renderExample(
     result.push('```http\n');
     result.push(`HTTP/1.1 ${statusCode}\n`);
     result.push('Content-type: application/json\n');
-    if (props.entityModel) {
-      result.push('\n');
-      if (op.docKind === DocOperationKind.ListCollection) {
-        result.push(buildCollectionJsonBody(props, ns));
-      } else {
-        result.push(buildJsonBody(props));
-      }
-      result.push('\n');
+    if (responseBody) {
+      result.push('\n' + responseBody + '\n');
     }
     result.push('```\n');
   } else {
@@ -211,6 +218,41 @@ function renderExample(
   }
 
   return result;
+}
+
+/**
+ * Get request body JSON — custom example or auto-generated.
+ */
+function getRequestBodyJson(
+  props: ApiMethodPageProps,
+  customExample: unknown | undefined,
+): string {
+  if (customExample) {
+    return JSON.stringify(customExample, null, 2);
+  }
+  if (props.entityModel) {
+    return buildJsonBody(props, true);
+  }
+  return '';
+}
+
+/**
+ * Get response body JSON — custom example or auto-generated.
+ */
+function getResponseBodyJson(
+  props: ApiMethodPageProps,
+  op: ResolvedOperation,
+  ns: string,
+  customExample: unknown | undefined,
+): string {
+  if (customExample) {
+    return JSON.stringify(customExample, null, 2);
+  }
+  if (!op.returnTypeName || !props.entityModel) return '';
+  if (op.docKind === DocOperationKind.ListCollection) {
+    return buildCollectionJsonBody(props, ns);
+  }
+  return buildJsonBody(props);
 }
 
 /**

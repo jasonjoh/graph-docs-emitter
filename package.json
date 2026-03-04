@@ -4,7 +4,7 @@
   "description": "TypeSpec emitter that generates Markdown API reference documentation for Microsoft Graph APIs",
   "type": "module",
   "main": "dist/src/index.js",
-  "tspMain": "dist/src/index.js",
+  "tspMain": "lib/decorators.tsp",
   "exports": {
     ".": {
       "import": "./dist/src/index.js"

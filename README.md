@@ -9,8 +9,11 @@ A TypeSpec emitter that generates Markdown API reference documentation for Micro
 
 - Generates **resource type pages** with properties, relationships, methods, and JSON representation
 - Generates **API method pages** with HTTP request, headers, request body, and response sections
-- Generates **enum type pages** and **complex type pages**
+- Generates a consolidated **enums page** with all enum types
+- Generates **complex type pages**
 - Reads `@microsoft/typespec-msgraph` decorators (`@entity`, `@complex`, `@graphRoute`, `@contains`, etc.)
+- Automatically filters out types and operations marked with `@agsAttribute("IsHidden", "true")`
+- Auto-generates example request and response JSON bodies, with support for **custom example decorators** (`@exampleRequest`, `@exampleResponse`)
 - Produces YAML front matter compatible with the Microsoft Learn publishing pipeline
 - Follows learn.microsoft.com filename conventions
 
@@ -48,6 +51,69 @@ Then run the TypeSpec compiler:
 npx tsp compile .
 ```
 
+## Custom Decorators
+
+This emitter provides two optional decorators that allow you to specify custom example request and response bodies in API method documentation. When these decorators are present, the emitter uses the provided values instead of auto-generating examples from the entity model.
+
+### Setup
+
+To use the custom decorators, add an import for this package in your TypeSpec file:
+
+```typespec
+import "@microsoft/typespec-graph-docs-emitter";
+```
+
+### `@exampleRequest`
+
+Specifies a custom example request body for an API method. Apply it to an operation.
+
+```typespec
+@exampleRequest(#{
+  displayName: "Project Brainstorm",
+  description: "A conversation about project ideas"
+})
+post is LocalOps.Post<400|500>;
+```
+
+The value must be an object literal (`#{...}`) with properties matching the expected request body format. The emitter serializes this object as JSON in the request example section of the generated Markdown.
+
+### `@exampleResponse`
+
+Specifies a custom example response body for an API method. Apply it to an operation.
+
+```typespec
+@exampleResponse(#{
+  id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  createdDateTime: "2025-01-15T10:30:00Z",
+  displayName: "Project Brainstorm",
+  state: "active",
+  turnCount: 0
+})
+post is LocalOps.Post<400|500>;
+```
+
+The value must be an object literal (`#{...}`) with properties matching the expected response body format.
+
+### Using Both Together
+
+You can apply both decorators to the same operation:
+
+```typespec
+@exampleRequest(#{
+  displayName: "Project Brainstorm"
+})
+@exampleResponse(#{
+  id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  createdDateTime: "2025-01-15T10:30:00Z",
+  displayName: "Project Brainstorm",
+  state: "active",
+  turnCount: 0
+})
+post is LocalOps.Post<400|500>;
+```
+
+> **Note:** These decorators are optional. Operations without them will continue to have example bodies auto-generated from the entity model properties. Computed, immutable, and read-only properties are automatically excluded from auto-generated request bodies.
+
 ## Options
 
 | Option        | Type     | Default          | Description                                                                                 |
@@ -63,7 +129,7 @@ npx tsp compile .
 ├── resources/
 │   ├── copilotconversation.md          # Entity type pages
 │   ├── copilotconversationlocation.md  # Complex type pages
-│   └── copilotconversationstate.md     # Enum type pages
+│   └── enums.md                        # All enum types (consolidated)
 └── api/
     ├── copilotconversation-get.md
     ├── copilot-list-conversations.md

@@ -24,6 +24,14 @@ import {
 } from '@microsoft/typespec-msgraph';
 
 export { $lib } from './lib.js';
+export {
+  $exampleRequest,
+  getExampleRequest,
+} from './decorators/example-request.js';
+export {
+  $exampleResponse,
+  getExampleResponse,
+} from './decorators/example-response.js';
 
 const DEFAULT_NAMESPACE = 'microsoft.graph';
 

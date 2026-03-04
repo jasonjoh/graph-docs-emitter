@@ -31,6 +31,8 @@ export interface ResolvedOperation {
   parentEntityName?: string;
   /** The return type name */
   returnTypeName: string | undefined;
+  /** Original TypeSpec Operation (for reading decorators) */
+  typespecOperation?: Operation;
 }
 
 /**
@@ -240,6 +242,7 @@ function resolveOperation(
         docKind: pattern.docKind,
         actionOrFunctionName: opName,
         returnTypeName,
+        typespecOperation: operation,
       };
     }
 
@@ -267,6 +270,7 @@ function resolveOperation(
       docKind,
       parentEntityName: parentSegment,
       returnTypeName,
+      typespecOperation: operation,
     };
   }
 
@@ -281,6 +285,7 @@ function resolveOperation(
     docKind: DocOperationKind.Action,
     actionOrFunctionName: opName,
     returnTypeName: getActionReturnTypeName(operation),
+    typespecOperation: operation,
   };
 }
 
