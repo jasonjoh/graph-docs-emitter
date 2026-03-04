@@ -78,7 +78,7 @@ describe('YamlFrontMatter', () => {
       />,
     );
 
-    expect(result).toContain('author: jasonjoh');
+    expect(result).toContain('author: "jasonjoh"');
   });
 
   it('defaults author field when not provided', () => {
@@ -91,7 +91,7 @@ describe('YamlFrontMatter', () => {
       />,
     );
 
-    expect(result).toContain('author: YOUR_GITHUB_USERNAME');
+    expect(result).toContain('author: "YOUR_GITHUB_USERNAME"');
   });
 });
 

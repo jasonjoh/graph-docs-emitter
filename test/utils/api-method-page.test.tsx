@@ -101,7 +101,7 @@ describe('ApiMethodPage', () => {
       );
 
       expect(result).toContain('doc_type: apiPageType');
-      expect(result).toContain('author: jasonjoh');
+      expect(result).toContain('author: "jasonjoh"');
       expect(result).toContain('## Permissions');
       expect(result).toContain('## HTTP request');
       expect(result).toContain('GET /widgets/{id}');

@@ -278,7 +278,7 @@ describe('$onEmit end-to-end', () => {
 
       const result = await authorTester.compile(SPEC_NO_ENUMS);
       const content = result.outputs['v1.0/resources/testitem.md'];
-      expect(content).toContain('author: testuser');
+      expect(content).toContain('author: "testuser"');
     });
 
     it('defaults api-version to v1.0', async () => {

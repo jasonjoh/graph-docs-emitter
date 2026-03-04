@@ -21,9 +21,9 @@ export function YamlFrontMatter(props: YamlFrontMatterProps): Children {
   const date = props.msDate ?? defaultDate;
   return [
     '---\n',
-    `title: "${props.title}"\n`,
+    `title: "${escapeYaml(props.title)}"\n`,
     `description: "${escapeYaml(props.description)}"\n`,
-    `author: ${props.author ? props.author : 'YOUR_GITHUB_USERNAME'}\n`,
+    `author: "${escapeYaml(props.author ?? 'YOUR_GITHUB_USERNAME')}"\n`,
     'ms.topic: reference\n',
     `ms.date: ${date}\n`,
     'ms.localizationpriority: medium\n',
