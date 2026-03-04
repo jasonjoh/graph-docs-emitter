@@ -72,6 +72,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   }
 
   // Collect all method pages
+  const entityMap = new Map(types.entities.map((e) => [e.name, e]));
   const methodPages: {
     filename: string;
     op: ResolvedOperation;
@@ -79,11 +80,11 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
     entityModel: Model | undefined;
   }[] = [];
   for (const [entityName, ops] of operationsByEntity) {
+    const entity = entityMap.get(entityName);
+    const ns = entity
+      ? getNamespaceForType(entity.model.namespace)
+      : DEFAULT_NAMESPACE;
     for (const op of ops) {
-      const entity = types.entities.find((e) => e.name === entityName);
-      const ns = entity
-        ? getNamespaceForType(entity.model.namespace)
-        : DEFAULT_NAMESPACE;
       methodPages.push({
         filename: getMethodFilename(op, entityName),
         op,
