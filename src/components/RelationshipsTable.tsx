@@ -6,6 +6,7 @@ import { Children } from '@alloy-js/core';
 import { Model, Program, getDoc } from '@typespec/compiler';
 import { isContains } from '@microsoft/typespec-msgraph';
 import { formatTypeName } from '../utils/type-formatter.js';
+import { TODO_DESCRIPTION } from './PropertiesTable.jsx';
 
 export interface RelationshipsTableProps {
   program: Program;
@@ -22,7 +23,7 @@ export function RelationshipsTable(props: RelationshipsTableProps): Children {
     if (!isContains(props.program, property)) continue;
 
     const typeName = formatTypeName(property.type);
-    const description = getDoc(props.program, property) ?? '';
+    const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
     rows.push(`| ${name} | ${typeName} | ${description} |`);
   }
 
@@ -31,7 +32,7 @@ export function RelationshipsTable(props: RelationshipsTableProps): Children {
     for (const [name, property] of props.model.baseModel.properties) {
       if (!isContains(props.program, property)) continue;
       const typeName = formatTypeName(property.type);
-      const description = getDoc(props.program, property) ?? '';
+      const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
       rows.push(`| ${name} | ${typeName} | ${description} |`);
     }
   }

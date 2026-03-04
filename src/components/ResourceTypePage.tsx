@@ -6,6 +6,7 @@ import { Children } from '@alloy-js/core';
 import { Model, Program } from '@typespec/compiler';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import { PropertiesTable } from './PropertiesTable.jsx';
+import { hasMissingDescriptions } from './PropertiesTable.jsx';
 import { RelationshipsTable } from './RelationshipsTable.jsx';
 import { JsonRepresentation } from './JsonRepresentation.jsx';
 import { MethodsTable } from './MethodsTable.jsx';
@@ -30,6 +31,12 @@ export function ResourceTypePage(props: ResourceTypePageProps): Children {
   const title = `${props.model.name} resource type`;
   const desc = props.description ?? `Represents a ${props.model.name}.`;
   const isBeta = props.apiVersion === 'beta';
+  const missingDescs = hasMissingDescriptions(props.program, props.model);
+  const todoComment = missingDescs
+    ? '<!-- This file contains placeholder descriptions ("TODO: Add description") because\n' +
+      '     the source TypeSpec file is missing documentation comments for some properties.\n' +
+      '     Please update the TypeSpec source with the missing descriptions and regenerate. -->\n\n'
+    : '';
 
   return [
     <YamlFrontMatter
@@ -40,6 +47,7 @@ export function ResourceTypePage(props: ResourceTypePageProps): Children {
       author={props.author}
     />,
     '\n',
+    todoComment,
     `# ${title}\n\n`,
     `Namespace: ${props.namespace}\n\n`,
     isBeta

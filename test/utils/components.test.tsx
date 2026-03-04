@@ -9,12 +9,18 @@ import { BasicTestRunner } from '@typespec/compiler/testing';
 import { renderTree, printTree } from '@alloy-js/core';
 import { createGraphDocsTestRunner } from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
-import { PropertiesTable } from '../../src/components/PropertiesTable.jsx';
+import {
+  PropertiesTable,
+  TODO_DESCRIPTION,
+  hasMissingDescriptions,
+} from '../../src/components/PropertiesTable.jsx';
 import { RelationshipsTable } from '../../src/components/RelationshipsTable.jsx';
 import { EnumsPage } from '../../src/components/EnumsPage.jsx';
 import { JsonRepresentation } from '../../src/components/JsonRepresentation.jsx';
 import { YamlFrontMatter } from '../../src/components/YamlFrontMatter.jsx';
 import { MethodsTable } from '../../src/components/MethodsTable.jsx';
+import { ResourceTypePage } from '../../src/components/ResourceTypePage.jsx';
+import { ComplexTypePage } from '../../src/components/ComplexTypePage.jsx';
 import { DocOperationKind } from '../../src/utils/operation-resolver.js';
 
 function renderToString(jsx: unknown): string {
@@ -306,5 +312,269 @@ describe('MethodsTable', () => {
     );
 
     expect(result).not.toContain('## Methods');
+  });
+});
+
+describe('Placeholder descriptions', () => {
+  it('shows TODO placeholder for properties without descriptions', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          name: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <PropertiesTable program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain(`| id | String | ${TODO_DESCRIPTION} |`);
+    expect(result).toContain(`| name | String | ${TODO_DESCRIPTION} |`);
+  });
+
+  it('does not show TODO placeholder when descriptions are present', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          /** The unique ID. */
+          @readOnly @computed @key id: string;
+          /** The display name. */
+          name: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <PropertiesTable program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).not.toContain(TODO_DESCRIPTION);
+    expect(result).toContain('| id | String | The unique ID. |');
+    expect(result).toContain('| name | String | The display name. |');
+  });
+
+  it('shows TODO placeholder for relationships without descriptions', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model child {
+          @readOnly @computed @key id: string;
+        }
+
+        @entity model parent {
+          @readOnly @computed @key id: string;
+          @contains children: child[];
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const parentEntity = types.entities.find((e) => e.name === 'parent')!;
+
+    const result = renderToString(
+      <RelationshipsTable
+        program={runner.program}
+        model={parentEntity.model}
+      />,
+    );
+
+    expect(result).toContain(TODO_DESCRIPTION);
+    expect(result).toContain(`| children |`);
+  });
+
+  it('hasMissingDescriptions returns true when properties lack docs', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          /** Has a doc. */
+          name: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    expect(hasMissingDescriptions(runner.program, entity.model)).toBe(true);
+  });
+
+  it('hasMissingDescriptions returns false when all properties have docs', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          /** The unique ID. */
+          @readOnly @computed @key id: string;
+          /** The display name. */
+          name: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    expect(hasMissingDescriptions(runner.program, entity.model)).toBe(false);
+  });
+
+  it('ResourceTypePage includes HTML comment when descriptions are missing', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+          name: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <ResourceTypePage
+        program={runner.program}
+        model={entity.model}
+        description='A test entity.'
+        namespace='microsoft.graph'
+        operations={[]}
+        getMethodFilename={() => ''}
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain(
+      '<!-- This file contains placeholder descriptions',
+    );
+    expect(result).toContain(
+      'Please update the TypeSpec source with the missing descriptions',
+    );
+  });
+
+  it('ResourceTypePage omits HTML comment when all descriptions present', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @entity model testEntity {
+          /** The unique ID. */
+          @readOnly @computed @key id: string;
+          /** The display name. */
+          name: string;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <ResourceTypePage
+        program={runner.program}
+        model={entity.model}
+        description='A test entity.'
+        namespace='microsoft.graph'
+        operations={[]}
+        getMethodFilename={() => ''}
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).not.toContain(
+      '<!-- This file contains placeholder descriptions',
+    );
+  });
+
+  it('ComplexTypePage includes HTML comment when descriptions are missing', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @complex model testComplex {
+          name: string;
+          value: int32;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const complex = types.complexTypes.find(
+      (c) => c.name === 'testComplex',
+    )!;
+
+    const result = renderToString(
+      <ComplexTypePage
+        program={runner.program}
+        model={complex.model}
+        description='A test complex type.'
+        namespace='microsoft.graph'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).toContain(
+      '<!-- This file contains placeholder descriptions',
+    );
+  });
+
+  it('ComplexTypePage omits HTML comment when all descriptions present', async () => {
+    await runner.compile(`
+      using MsGraph;
+
+      @publicNamespace("microsoft.graph")
+      namespace microsoft.graph {
+        @complex model testComplex {
+          /** The name. */
+          name: string;
+          /** The value. */
+          value: int32;
+        }
+      }
+    `);
+
+    const types = collectGraphTypes(runner.program);
+    const complex = types.complexTypes.find(
+      (c) => c.name === 'testComplex',
+    )!;
+
+    const result = renderToString(
+      <ComplexTypePage
+        program={runner.program}
+        model={complex.model}
+        description='A test complex type.'
+        namespace='microsoft.graph'
+        msDate='01/15/2025'
+      />,
+    );
+
+    expect(result).not.toContain(
+      '<!-- This file contains placeholder descriptions',
+    );
   });
 });
