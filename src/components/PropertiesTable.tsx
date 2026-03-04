@@ -6,8 +6,8 @@
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
 import { Model, Program, getDoc } from '@typespec/compiler';
-import { isContains } from '@microsoft/typespec-msgraph';
 import { formatTypeName } from '../utils/type-formatter.js';
+import { getModelProperties } from '../utils/model-properties.js';
 
 export const TODO_DESCRIPTION = '**TODO: Add description**';
 
@@ -23,23 +23,14 @@ export interface PropertiesTableProps {
 export function PropertiesTable(props: PropertiesTableProps): Children {
   const rows: string[] = [];
 
-  for (const [name, property] of props.model.properties) {
-    // Skip navigation/containment properties — they go in Relationships
-    if (isContains(props.program, property)) continue;
-
+  for (const [name, property] of getModelProperties(
+    props.program,
+    props.model,
+    'exclude',
+  )) {
     const typeName = formatTypeName(property.type);
     const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
     rows.push(`| ${name} | ${typeName} | ${description} |`);
-  }
-
-  // Also include inherited properties from base model
-  if (props.model.baseModel) {
-    for (const [name, property] of props.model.baseModel.properties) {
-      if (isContains(props.program, property)) continue;
-      const typeName = formatTypeName(property.type);
-      const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
-      rows.push(`| ${name} | ${typeName} | ${description} |`);
-    }
   }
 
   if (rows.length === 0) return [];
@@ -61,13 +52,8 @@ export function hasMissingDescriptions(
   program: Program,
   model: Model,
 ): boolean {
-  for (const [, property] of model.properties) {
+  for (const [, property] of getModelProperties(program, model)) {
     if (!getDoc(program, property)) return true;
-  }
-  if (model.baseModel) {
-    for (const [, property] of model.baseModel.properties) {
-      if (!getDoc(program, property)) return true;
-    }
   }
   return false;
 }

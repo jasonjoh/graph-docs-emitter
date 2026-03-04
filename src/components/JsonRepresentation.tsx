@@ -4,8 +4,8 @@
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
 import { Model, Program } from '@typespec/compiler';
-import { isContains } from '@microsoft/typespec-msgraph';
 import { formatJsonValue } from '../utils/type-formatter.js';
+import { getModelProperties } from '../utils/model-properties.js';
 
 export interface JsonRepresentationProps {
   program: Program;
@@ -28,9 +28,11 @@ export function JsonRepresentation(props: JsonRepresentationProps): Children {
     entries.push(`  "@odata.type": "#${ns}.${props.model.name}"`);
   }
 
-  for (const [name, property] of props.model.properties) {
-    // Skip containment nav properties from JSON representation
-    if (isContains(props.program, property)) continue;
+  for (const [name, property] of getModelProperties(
+    props.program,
+    props.model,
+    'exclude',
+  )) {
     const jsonValue = formatJsonValue(property.type);
     entries.push(`  "${name}": ${jsonValue}`);
   }

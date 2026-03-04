@@ -4,8 +4,8 @@
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
 import { Model, Program, getDoc } from '@typespec/compiler';
-import { isContains } from '@microsoft/typespec-msgraph';
 import { formatTypeName } from '../utils/type-formatter.js';
+import { getModelProperties } from '../utils/model-properties.js';
 import { TODO_DESCRIPTION } from './PropertiesTable.jsx';
 
 export interface RelationshipsTableProps {
@@ -19,22 +19,14 @@ export interface RelationshipsTableProps {
 export function RelationshipsTable(props: RelationshipsTableProps): Children {
   const rows: string[] = [];
 
-  for (const [name, property] of props.model.properties) {
-    if (!isContains(props.program, property)) continue;
-
+  for (const [name, property] of getModelProperties(
+    props.program,
+    props.model,
+    'only',
+  )) {
     const typeName = formatTypeName(property.type);
     const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
     rows.push(`| ${name} | ${typeName} | ${description} |`);
-  }
-
-  // Also include inherited containment properties
-  if (props.model.baseModel) {
-    for (const [name, property] of props.model.baseModel.properties) {
-      if (!isContains(props.program, property)) continue;
-      const typeName = formatTypeName(property.type);
-      const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
-      rows.push(`| ${name} | ${typeName} | ${description} |`);
-    }
   }
 
   if (rows.length === 0) {
