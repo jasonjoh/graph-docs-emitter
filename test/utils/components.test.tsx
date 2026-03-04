@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
 import { renderTree, printTree } from '@alloy-js/core';
-import { createGraphDocsTestRunner } from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   PropertiesTable,
@@ -97,19 +97,14 @@ describe('YamlFrontMatter', () => {
 
 describe('PropertiesTable', () => {
   it('renders property rows for entity model', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           /** The display name. */
           @computed displayName: string;
           @computed count: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -126,11 +121,7 @@ describe('PropertiesTable', () => {
   });
 
   it('excludes @contains properties', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model child {
           @readOnly @computed @key id: string;
         }
@@ -139,8 +130,7 @@ describe('PropertiesTable', () => {
           @readOnly @computed @key id: string;
           @contains children: child[];
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const parentEntity = types.entities.find((e) => e.name === 'parent')!;
@@ -156,11 +146,7 @@ describe('PropertiesTable', () => {
 
 describe('RelationshipsTable', () => {
   it('renders @contains navigation properties', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model child {
           @readOnly @computed @key id: string;
         }
@@ -170,8 +156,7 @@ describe('RelationshipsTable', () => {
           /** The children items. */
           @contains children: child[];
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const parentEntity = types.entities.find((e) => e.name === 'parent')!;
@@ -190,17 +175,12 @@ describe('RelationshipsTable', () => {
   });
 
   it('returns empty when no containment properties', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model simple {
           @readOnly @computed @key id: string;
           @computed name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'simple')!;
@@ -216,11 +196,7 @@ describe('RelationshipsTable', () => {
 
 describe('EnumsPage', () => {
   it('renders all enums in a single page', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         enum testStatus {
           /** The item is active. */
           active,
@@ -228,8 +204,7 @@ describe('EnumsPage', () => {
           inactive,
           unknownFutureValue
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
 
@@ -251,18 +226,13 @@ describe('EnumsPage', () => {
 
 describe('JsonRepresentation', () => {
   it('renders JSON block with @odata.type and properties', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @computed displayName: string;
           @computed count: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -317,17 +287,12 @@ describe('MethodsTable', () => {
 
 describe('Placeholder descriptions', () => {
   it('shows TODO placeholder for properties without descriptions', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -341,19 +306,14 @@ describe('Placeholder descriptions', () => {
   });
 
   it('does not show TODO placeholder when descriptions are present', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           /** The unique ID. */
           @readOnly @computed @key id: string;
           /** The display name. */
           name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -368,11 +328,7 @@ describe('Placeholder descriptions', () => {
   });
 
   it('shows TODO placeholder for relationships without descriptions', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model child {
           @readOnly @computed @key id: string;
         }
@@ -381,8 +337,7 @@ describe('Placeholder descriptions', () => {
           @readOnly @computed @key id: string;
           @contains children: child[];
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const parentEntity = types.entities.find((e) => e.name === 'parent')!;
@@ -399,18 +354,13 @@ describe('Placeholder descriptions', () => {
   });
 
   it('hasMissingDescriptions returns true when properties lack docs', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           /** Has a doc. */
           name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -419,19 +369,14 @@ describe('Placeholder descriptions', () => {
   });
 
   it('hasMissingDescriptions returns false when all properties have docs', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           /** The unique ID. */
           @readOnly @computed @key id: string;
           /** The display name. */
           name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -440,17 +385,12 @@ describe('Placeholder descriptions', () => {
   });
 
   it('ResourceTypePage includes HTML comment when descriptions are missing', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -476,19 +416,14 @@ describe('Placeholder descriptions', () => {
   });
 
   it('ResourceTypePage omits HTML comment when all descriptions present', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           /** The unique ID. */
           @readOnly @computed @key id: string;
           /** The display name. */
           name: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -511,17 +446,12 @@ describe('Placeholder descriptions', () => {
   });
 
   it('ComplexTypePage includes HTML comment when descriptions are missing', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @complex model testComplex {
           name: string;
           value: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
@@ -542,19 +472,14 @@ describe('Placeholder descriptions', () => {
   });
 
   it('ComplexTypePage omits HTML comment when all descriptions present', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @complex model testComplex {
           /** The name. */
           name: string;
           /** The value. */
           value: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
@@ -577,11 +502,7 @@ describe('Placeholder descriptions', () => {
 
 describe('PropertiesTable - base model inheritance', () => {
   it('includes properties inherited from base model', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model baseEntity {
           /** The unique ID. */
           @readOnly @computed @key id: string;
@@ -592,8 +513,7 @@ describe('PropertiesTable - base model inheritance', () => {
           /** Child value. */
           @computed childProp: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const child = types.entities.find((e) => e.name === 'childEntity')!;
@@ -608,11 +528,7 @@ describe('PropertiesTable - base model inheritance', () => {
   });
 
   it('excludes @contains from inherited properties', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model item {
           @readOnly @computed @key id: string;
         }
@@ -626,8 +542,7 @@ describe('PropertiesTable - base model inheritance', () => {
           /** Child value. */
           @computed childProp: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const child = types.entities.find((e) => e.name === 'childEntity')!;
@@ -642,11 +557,7 @@ describe('PropertiesTable - base model inheritance', () => {
   });
 
   it('sorts all properties (own + inherited) alphabetically', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model baseEntity {
           /** An ID. */
           @readOnly @computed @key id: string;
@@ -659,8 +570,7 @@ describe('PropertiesTable - base model inheritance', () => {
           /** Middle prop. */
           @computed middle: int32;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const child = types.entities.find((e) => e.name === 'childEntity')!;
@@ -688,11 +598,7 @@ describe('PropertiesTable - base model inheritance', () => {
 
 describe('RelationshipsTable - base model inheritance', () => {
   it('includes @contains properties from base model', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model item {
           @readOnly @computed @key id: string;
         }
@@ -708,8 +614,7 @@ describe('RelationshipsTable - base model inheritance', () => {
           /** Child things. */
           @contains things: thing[];
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const child = types.entities.find((e) => e.name === 'childEntity')!;
@@ -727,17 +632,12 @@ describe('RelationshipsTable - base model inheritance', () => {
 
 describe('Beta disclaimer', () => {
   it('ResourceTypePage renders beta disclaimer when apiVersion is beta', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           /** The ID. */
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -759,17 +659,12 @@ describe('Beta disclaimer', () => {
   });
 
   it('ResourceTypePage omits beta disclaimer when apiVersion is v1.0', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           /** The ID. */
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -791,17 +686,12 @@ describe('Beta disclaimer', () => {
   });
 
   it('ComplexTypePage renders beta disclaimer when apiVersion is beta', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @complex model testComplex {
           /** A value. */
           value: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;
@@ -821,14 +711,9 @@ describe('Beta disclaimer', () => {
   });
 
   it('EnumsPage renders beta disclaimer when apiVersion is beta', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         enum testEnum { a, unknownFutureValue }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
 
@@ -846,14 +731,9 @@ describe('Beta disclaimer', () => {
   });
 
   it('EnumsPage omits beta disclaimer when apiVersion is not beta', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         enum testEnum { a, unknownFutureValue }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
 
@@ -873,16 +753,11 @@ describe('Beta disclaimer', () => {
 
 describe('EnumsPage - sorting', () => {
   it('sorts enums alphabetically', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         enum zebraEnum { z, unknownFutureValue }
         enum alphaEnum { a, unknownFutureValue }
         enum middleEnum { m, unknownFutureValue }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
 
@@ -905,17 +780,12 @@ describe('EnumsPage - sorting', () => {
 
 describe('JsonRepresentation - edge cases', () => {
   it('renders collection/array property as empty array', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @computed tags: string[];
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -928,18 +798,13 @@ describe('JsonRepresentation - edge cases', () => {
   });
 
   it('renders enum property as "String"', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         enum testStatus { active, inactive, unknownFutureValue }
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @computed status: testStatus;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -952,17 +817,12 @@ describe('JsonRepresentation - edge cases', () => {
   });
 
   it('renders nullable property using underlying type', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           name: string | null;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -975,11 +835,7 @@ describe('JsonRepresentation - edge cases', () => {
   });
 
   it('renders nested model as @odata.type reference', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @complex model nested {
           value: string;
         }
@@ -987,8 +843,7 @@ describe('JsonRepresentation - edge cases', () => {
           @readOnly @computed @key id: string;
           @computed detail: nested;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -1003,11 +858,7 @@ describe('JsonRepresentation - edge cases', () => {
   });
 
   it('excludes @contains properties from JSON representation', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model child {
           @readOnly @computed @key id: string;
         }
@@ -1016,8 +867,7 @@ describe('JsonRepresentation - edge cases', () => {
           @computed name: string;
           @contains children: child[];
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -1031,16 +881,11 @@ describe('JsonRepresentation - edge cases', () => {
   });
 
   it('uses custom namespace in @odata.type', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -1061,17 +906,12 @@ describe('JsonRepresentation - edge cases', () => {
 
 describe('ResourceTypePage - description fallback', () => {
   it('uses default description when none provided', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testEntity {
           /** The ID. */
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -1094,17 +934,12 @@ describe('ResourceTypePage - description fallback', () => {
 
 describe('ComplexTypePage - description fallback', () => {
   it('uses default description when none provided', async () => {
-    await runner.compile(`
-      using MsGraph;
-
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @complex model testComplex {
           /** A prop. */
           value: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const complex = types.complexTypes.find((c) => c.name === 'testComplex')!;

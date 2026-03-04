@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
 import { renderTree, printTree } from '@alloy-js/core';
-import { createGraphDocsTestRunner } from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
@@ -43,11 +43,7 @@ async function compileAndResolve(tsp: string, entityName?: string) {
   return { types, ops };
 }
 
-const STANDARD_SPEC = `
-  using MsGraph;
-
-  @publicNamespace("microsoft.graph")
-  namespace microsoft.graph {
+const STANDARD_SPEC = graphSpec(`
     /** A test entity representing a widget. */
     @entity model testWidget {
       /** The unique identifier. */
@@ -72,8 +68,7 @@ const STANDARD_SPEC = `
       patch is GraphOps.PatchNoResponse;
       delete is GraphOps.Delete;
     }
-  }
-`;
+`);
 
 describe('ApiMethodPage', () => {
   describe('GET single resource', () => {
@@ -752,11 +747,7 @@ describe('ApiMethodPage', () => {
   describe('action operations', () => {
     it('renders action page with POST and request body', async () => {
       const { types, ops } = await compileAndResolve(
-        `
-        using MsGraph;
-
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+        graphSpec(`
           @entity model testItem {
             /** The unique identifier. */
             @readOnly @computed @key id: string;
@@ -772,8 +763,7 @@ describe('ApiMethodPage', () => {
           interface testItemsById extends Resource<testItem> {
             doSomething is GraphOps.Action<TActionParams=testActionParams, TReturnType=testItem>;
           }
-        }
-      `,
+      `),
         'testItem',
       );
 

@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
-import { createGraphDocsTestRunner } from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
 import {
   collectGraphTypes,
   normalizeDescription,
@@ -55,10 +55,7 @@ describe('normalizeDescription', () => {
 
 describe('collectGraphTypes - isHidden', () => {
   it('skips models with @agsAttribute("IsHidden", "true")', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model visibleEntity {
           @readOnly @computed @key id: string;
         }
@@ -66,8 +63,7 @@ describe('collectGraphTypes - isHidden', () => {
         @entity model hiddenEntity {
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     expect(
@@ -79,15 +75,11 @@ describe('collectGraphTypes - isHidden', () => {
   });
 
   it('skips enums with @agsAttribute("IsHidden", "true")', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         enum visibleEnum { a, b, unknownFutureValue }
         @agsAttribute("IsHidden", "true")
         enum hiddenEnum { x, y, unknownFutureValue }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     expect(types.enums.find((e) => e.name === 'visibleEnum')).toBeDefined();
@@ -95,10 +87,7 @@ describe('collectGraphTypes - isHidden', () => {
   });
 
   it('skips interfaces with @agsAttribute("IsHidden", "true")', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -107,8 +96,7 @@ describe('collectGraphTypes - isHidden', () => {
         @agsAttribute("IsHidden", "true")
         @graphRoute("secret")
         interface hiddenRoute extends Collection<testItem> {}
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     expect(types.routes.find((r) => r.path === 'items')).toBeDefined();
@@ -118,16 +106,12 @@ describe('collectGraphTypes - isHidden', () => {
 
 describe('collectGraphTypes - complex types', () => {
   it('collects @complex models', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         /** A complex type. */
         @complex model testComplex {
           value: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const complex = types.complexTypes.find((c) => c.name === 'testComplex');
@@ -138,16 +122,12 @@ describe('collectGraphTypes - complex types', () => {
 
 describe('collectGraphTypes - description normalization', () => {
   it('normalizes concatenated descriptions on models', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         /** First sentence.Second sentence. */
         @entity model testEntity {
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -155,14 +135,10 @@ describe('collectGraphTypes - description normalization', () => {
   });
 
   it('normalizes concatenated descriptions on enums', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         /** An enum.Values listed below. */
         enum testEnum { a, unknownFutureValue }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     const enumInfo = types.enums.find((e) => e.name === 'testEnum')!;
@@ -172,18 +148,14 @@ describe('collectGraphTypes - description normalization', () => {
 
 describe('collectGraphTypes - @operationParameters skip', () => {
   it('skips models with @operationParameters', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @operationParameters model testParams {
           value: string;
         }
         @entity model testEntity {
           @readOnly @computed @key id: string;
         }
-      }
-    `);
+    `));
 
     const types = collectGraphTypes(runner.program);
     expect(types.entities.find((e) => e.name === 'testParams')).toBeUndefined();

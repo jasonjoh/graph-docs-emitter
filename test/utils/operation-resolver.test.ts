@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
-import { createGraphDocsTestRunner } from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
@@ -60,10 +60,7 @@ describe('getStandardCrudDescription', () => {
 describe('resolveOperationsFromRoute', () => {
   describe('GetPagedCollection', () => {
     it('resolves GetPagedCollection as ListCollection', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -71,8 +68,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItems extends Collection<testItem> {
             @select @top @skip getAll is GraphOps.GetPagedCollection;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path === 'items')!;
@@ -94,10 +90,7 @@ describe('resolveOperationsFromRoute', () => {
 
   describe('Function operations', () => {
     it('resolves Function as GET with function kind', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
             @computed displayName: string;
@@ -106,8 +99,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             compute is GraphOps.Function<TReturnType=testItem>;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -128,10 +120,7 @@ describe('resolveOperationsFromRoute', () => {
 
   describe('return types', () => {
     it('returns entity name for GetResource', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -139,8 +128,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             get is GraphOps.GetResource;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -158,10 +146,7 @@ describe('resolveOperationsFromRoute', () => {
     });
 
     it('returns undefined for Delete', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -169,8 +154,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             delete is GraphOps.Delete;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -186,10 +170,7 @@ describe('resolveOperationsFromRoute', () => {
     });
 
     it('returns collection type for ListCollection', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -197,8 +178,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItems extends Collection<testItem> {
             @select getAll is GraphOps.GetPagedCollection;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path === 'items')!;
@@ -216,10 +196,7 @@ describe('resolveOperationsFromRoute', () => {
     });
 
     it('returns undefined for all types when entityName not provided', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -227,8 +204,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             get is GraphOps.GetResource;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -248,10 +224,7 @@ describe('resolveOperationsFromRoute', () => {
 
   describe('display names', () => {
     it('generates CRUD display names from entity name', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -261,8 +234,7 @@ describe('resolveOperationsFromRoute', () => {
             patch is GraphOps.PatchNoResponse;
             delete is GraphOps.Delete;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -285,10 +257,7 @@ describe('resolveOperationsFromRoute', () => {
     });
 
     it('uses "resource" fallback when no entity name', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -296,8 +265,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             get is GraphOps.GetResource;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -314,10 +282,7 @@ describe('resolveOperationsFromRoute', () => {
     });
 
     it('generates action display name with entity prefix', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -328,8 +293,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             doSomething is GraphOps.Action<TActionParams=testActionParams, TReturnType=testItem>;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -347,10 +311,7 @@ describe('resolveOperationsFromRoute', () => {
 
   describe('typespecOperation field', () => {
     it('populates typespecOperation for CRUD operations', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -358,8 +319,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             get is GraphOps.GetResource;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -378,10 +338,7 @@ describe('resolveOperationsFromRoute', () => {
     });
 
     it('populates typespecOperation for action operations', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -392,8 +349,7 @@ describe('resolveOperationsFromRoute', () => {
           interface testItemsById extends Resource<testItem> {
             doSomething is GraphOps.Action<TActionParams=testActionParams, TReturnType=testItem>;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -411,10 +367,7 @@ describe('resolveOperationsFromRoute', () => {
 
   describe('hidden operations', () => {
     it('skips operations with IsHidden attribute', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model testItem {
             @readOnly @computed @key id: string;
           }
@@ -424,8 +377,7 @@ describe('resolveOperationsFromRoute', () => {
             @agsAttribute("IsHidden", "true")
             patch is GraphOps.PatchNoResponse;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('items'))!;
@@ -447,10 +399,7 @@ describe('resolveOperationsFromRoute', () => {
 
   describe('parent entity resolution', () => {
     it('resolves parent segment from nested route', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @entity model message {
             @readOnly @computed @key id: string;
           }
@@ -466,8 +415,7 @@ describe('resolveOperationsFromRoute', () => {
           interface userMessages extends Collection<message> {
             post is GraphOps.Post;
           }
-        }
-      `);
+      `));
 
       const types = collectGraphTypes(runner.program);
       const route = types.routes.find((r) => r.path.includes('messages'))!;

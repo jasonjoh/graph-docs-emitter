@@ -17,3 +17,18 @@ export async function createGraphDocsTestRunner(): Promise<BasicTestRunner> {
   const host = await createGraphDocsTestHost();
   return createTestRunner(host);
 }
+
+/**
+ * Wraps TypeSpec body code in the standard Graph namespace boilerplate:
+ * `using MsGraph; @publicNamespace("microsoft.graph") namespace microsoft.graph { ... }`
+ */
+export function graphSpec(body: string): string {
+  return `
+using MsGraph;
+
+@publicNamespace("microsoft.graph")
+namespace microsoft.graph {
+${body}
+}
+`;
+}

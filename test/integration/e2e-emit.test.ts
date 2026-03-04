@@ -10,6 +10,7 @@ import type {
   EmitterTester,
   TestEmitterCompileResult,
 } from '@typespec/compiler/testing';
+import { graphSpec } from '../test-host.js';
 
 const EMITTER_NAME = '@microsoft/typespec-graph-docs-emitter';
 const EMITTER_BASE = resolvePath(import.meta.dirname, '../..');
@@ -29,11 +30,7 @@ beforeAll(() => {
     .emit(EMITTER_NAME);
 });
 
-const BASIC_SPEC = `
-using MsGraph;
-
-@publicNamespace("microsoft.graph")
-namespace microsoft.graph {
+const BASIC_SPEC = graphSpec(`
   /** A test entity. */
   @entity model testItem {
     /** The unique identifier. */
@@ -53,14 +50,9 @@ namespace microsoft.graph {
     patch is GraphOps.PatchNoResponse;
     delete is GraphOps.Delete;
   }
-}
-`;
+`);
 
-const SPEC_WITH_ENUMS = `
-using MsGraph;
-
-@publicNamespace("microsoft.graph")
-namespace microsoft.graph {
+const SPEC_WITH_ENUMS = graphSpec(`
   enum testStatus { active, inactive, unknownFutureValue }
 
   /** An entity. */
@@ -70,14 +62,9 @@ namespace microsoft.graph {
     /** The status. */
     @computed status: testStatus;
   }
-}
-`;
+`);
 
-const SPEC_WITH_COMPLEX = `
-using MsGraph;
-
-@publicNamespace("microsoft.graph")
-namespace microsoft.graph {
+const SPEC_WITH_COMPLEX = graphSpec(`
   /** A complex type. */
   @complex model testAddress {
     /** The street. */
@@ -93,14 +80,9 @@ namespace microsoft.graph {
     /** The mailing address. */
     @computed address: testAddress;
   }
-}
-`;
+`);
 
-const SPEC_NO_ENUMS = `
-using MsGraph;
-
-@publicNamespace("microsoft.graph")
-namespace microsoft.graph {
+const SPEC_NO_ENUMS = graphSpec(`
   /** An entity. */
   @entity model testItem {
     /** The unique identifier. */
@@ -108,8 +90,7 @@ namespace microsoft.graph {
     /** The name. */
     @computed displayName: string;
   }
-}
-`;
+`);
 
 describe('$onEmit end-to-end', () => {
   describe('file output structure', () => {

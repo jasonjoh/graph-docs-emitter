@@ -5,7 +5,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
-import { createGraphDocsTestRunner } from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   formatTypeName,
@@ -21,13 +21,9 @@ beforeEach(async () => {
 describe('formatTypeName', () => {
   describe('scalar types', () => {
     it('maps string to String', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: string; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -35,13 +31,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps boolean to Boolean', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: boolean; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -49,13 +41,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps int64 to Int64', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: int64; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -63,13 +51,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps float64 to Double', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: float64; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -77,13 +61,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps utcDateTime to DateTimeOffset', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: utcDateTime; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -91,13 +71,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps bytes to Binary', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: bytes; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -105,13 +81,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps duration to Duration', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: duration; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -119,13 +91,9 @@ describe('formatTypeName', () => {
     });
 
     it('maps plainDate to Date', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: plainDate; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -135,14 +103,10 @@ describe('formatTypeName', () => {
 
   describe('enum types', () => {
     it('renders enum as markdown link', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           enum testStatus { active, inactive, unknownFutureValue }
           @complex model testModel { status: testStatus; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('status')!;
@@ -152,14 +116,10 @@ describe('formatTypeName', () => {
 
   describe('model types', () => {
     it('renders named model as markdown link', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model innerModel { value: string; }
           @complex model testModel { inner: innerModel; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('inner')!;
@@ -167,14 +127,10 @@ describe('formatTypeName', () => {
     });
 
     it('renders array as collection type', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model innerModel { value: string; }
           @complex model testModel { items: innerModel[]; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('items')!;
@@ -184,13 +140,9 @@ describe('formatTypeName', () => {
     });
 
     it('renders string array as String collection', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { tags: string[]; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('tags')!;
@@ -200,13 +152,9 @@ describe('formatTypeName', () => {
 
   describe('union types', () => {
     it('unwraps nullable union to inner type', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: string | null; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -214,13 +162,9 @@ describe('formatTypeName', () => {
     });
 
     it('joins multiple non-null variants with or', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: string | int32; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -232,13 +176,9 @@ describe('formatTypeName', () => {
 describe('formatJsonValue', () => {
   describe('scalar types', () => {
     it('returns "String" for string', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: string; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -246,13 +186,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns true for boolean', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: boolean; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -260,13 +196,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns 0 for int32', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: int32; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -274,13 +206,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns 0.0 for float64', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: float64; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -288,13 +216,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns "String (timestamp)" for utcDateTime', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: utcDateTime; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -302,13 +226,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns "Duration" for duration', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: duration; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -316,13 +236,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns "Binary" for bytes', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: bytes; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -330,13 +246,9 @@ describe('formatJsonValue', () => {
     });
 
     it('returns "Date" for plainDate', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: plainDate; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;
@@ -346,14 +258,10 @@ describe('formatJsonValue', () => {
 
   describe('model types', () => {
     it('returns @odata.type for named model', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model innerModel { value: string; }
           @complex model testModel { inner: innerModel; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('inner')!;
@@ -363,14 +271,10 @@ describe('formatJsonValue', () => {
     });
 
     it('returns [] for array type', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model innerModel { value: string; }
           @complex model testModel { items: innerModel[]; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('items')!;
@@ -380,14 +284,10 @@ describe('formatJsonValue', () => {
 
   describe('enum types', () => {
     it('returns "String" for enum', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           enum testStatus { active, inactive, unknownFutureValue }
           @complex model testModel { status: testStatus; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('status')!;
@@ -397,13 +297,9 @@ describe('formatJsonValue', () => {
 
   describe('union types', () => {
     it('unwraps nullable union for JSON value', async () => {
-      await runner.compile(`
-        using MsGraph;
-        @publicNamespace("microsoft.graph")
-        namespace microsoft.graph {
+      await runner.compile(graphSpec(`
           @complex model testModel { value: string | null; }
-        }
-      `);
+      `));
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('value')!;

@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
-import { createGraphDocsTestRunner } from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
 import {
   $exampleRequest,
   getExampleRequest,
@@ -21,10 +21,7 @@ beforeEach(async () => {
 
 describe('$exampleRequest / getExampleRequest', () => {
   it('stores and retrieves an object value', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -33,8 +30,7 @@ describe('$exampleRequest / getExampleRequest', () => {
         interface testItemsById extends Resource<testItem> {
           get is GraphOps.GetResource;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
@@ -53,10 +49,7 @@ describe('$exampleRequest / getExampleRequest', () => {
   });
 
   it('returns undefined when no decorator applied', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -65,8 +58,7 @@ describe('$exampleRequest / getExampleRequest', () => {
         interface testItemsById extends Resource<testItem> {
           get is GraphOps.GetResource;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
@@ -81,10 +73,7 @@ describe('$exampleRequest / getExampleRequest', () => {
   });
 
   it('stores a string value', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -93,8 +82,7 @@ describe('$exampleRequest / getExampleRequest', () => {
         interface testItemsById extends Resource<testItem> {
           get is GraphOps.GetResource;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
@@ -110,10 +98,7 @@ describe('$exampleRequest / getExampleRequest', () => {
   });
 
   it('stores an array value', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -122,8 +107,7 @@ describe('$exampleRequest / getExampleRequest', () => {
         interface testItemsById extends Resource<testItem> {
           get is GraphOps.GetResource;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
@@ -145,10 +129,7 @@ describe('$exampleRequest / getExampleRequest', () => {
 
 describe('$exampleResponse / getExampleResponse', () => {
   it('stores and retrieves an object value', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -157,8 +138,7 @@ describe('$exampleResponse / getExampleResponse', () => {
         interface testItemsById extends Resource<testItem> {
           get is GraphOps.GetResource;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
@@ -186,10 +166,7 @@ describe('$exampleResponse / getExampleResponse', () => {
   });
 
   it('returns undefined when no decorator applied', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -198,8 +175,7 @@ describe('$exampleResponse / getExampleResponse', () => {
         interface testItemsById extends Resource<testItem> {
           get is GraphOps.GetResource;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
@@ -212,10 +188,7 @@ describe('$exampleResponse / getExampleResponse', () => {
   });
 
   it('stores different values for different operations', async () => {
-    await runner.compile(`
-      using MsGraph;
-      @publicNamespace("microsoft.graph")
-      namespace microsoft.graph {
+    await runner.compile(graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
         }
@@ -225,8 +198,7 @@ describe('$exampleResponse / getExampleResponse', () => {
           get is GraphOps.GetResource;
           patch is GraphOps.PatchNoResponse;
         }
-      }
-    `);
+    `));
 
     const iface = runner.program
       .getGlobalNamespaceType()
