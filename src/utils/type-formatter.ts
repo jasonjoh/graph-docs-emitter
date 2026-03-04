@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import { Type, Model, Scalar, Union } from '@typespec/compiler';
+import { DEFAULT_NAMESPACE } from './graph-metadata.js';
 
 /**
  * Format a TypeSpec type as a display string for documentation.
@@ -116,7 +117,7 @@ export function formatJsonValue(type: Type): string {
     case 'Model':
       if (type.indexer) return '[]';
       if (!type.name) return '{}';
-      return `{"@odata.type": "microsoft.graph.${type.name}"}`;
+      return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
     case 'Enum':
       return '"String"';
     case 'Union':

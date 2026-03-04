@@ -4,7 +4,7 @@
 // cSpell:ignore msgraph
 
 /** @jsxImportSource @alloy-js/core */
-import { EmitContext, Model, Namespace } from '@typespec/compiler';
+import { EmitContext, Model } from '@typespec/compiler';
 import { Output, SourceFile, SourceDirectory } from '@alloy-js/core';
 import { writeOutput } from '@typespec/emitter-framework';
 import { GraphDocsEmitterOptions } from './lib.js';
@@ -14,14 +14,14 @@ import {
   ResolvedOperation,
 } from './utils/operation-resolver.js';
 import { getTypeFilename, getMethodFilename } from './utils/filename.js';
+import {
+  DEFAULT_NAMESPACE,
+  getNamespaceForType,
+} from './utils/graph-metadata.js';
 import { ResourceTypePage } from './components/ResourceTypePage.jsx';
 import { ApiMethodPage } from './components/ApiMethodPage.jsx';
 import { EnumsPage } from './components/EnumsPage.jsx';
 import { ComplexTypePage } from './components/ComplexTypePage.jsx';
-import {
-  getPublicNamespaceName,
-  hasPublicNamespace,
-} from '@microsoft/typespec-msgraph';
 
 export { $lib } from './lib.js';
 export {
@@ -33,8 +33,6 @@ export {
   getExampleResponse,
 } from './decorators/example-response.js';
 
-const DEFAULT_NAMESPACE = 'microsoft.graph';
-
 export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   if (context.program.compilerOptions.noEmit) {
     return;
@@ -42,17 +40,6 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
 
   const program = context.program;
   const types = collectGraphTypes(program);
-
-  // Resolve the public namespace name for display
-  function getNamespaceForType(ns: Namespace | undefined): string {
-    while (ns) {
-      if (hasPublicNamespace(program, ns)) {
-        return getPublicNamespaceName(program, ns) ?? DEFAULT_NAMESPACE;
-      }
-      ns = ns.namespace;
-    }
-    return DEFAULT_NAMESPACE;
-  }
 
   // Build operation map: entity name -> operations
   const operationsByEntity = new Map<string, ResolvedOperation[]>();
@@ -82,7 +69,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
   for (const [entityName, ops] of operationsByEntity) {
     const entity = entityMap.get(entityName);
     const ns = entity
-      ? getNamespaceForType(entity.model.namespace)
+      ? getNamespaceForType(program, entity.model.namespace)
       : DEFAULT_NAMESPACE;
     for (const op of ops) {
       methodPages.push({
@@ -109,7 +96,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               program={program}
               model={entity.model}
               description={entity.description}
-              namespace={getNamespaceForType(entity.model.namespace)}
+              namespace={getNamespaceForType(program, entity.model.namespace)}
               operations={operationsByEntity.get(entity.name) ?? []}
               getMethodFilename={(op) => getMethodFilename(op, entity.name)}
               apiVersion={apiVersion}
@@ -124,7 +111,7 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
               program={program}
               model={complex.model}
               description={complex.description}
-              namespace={getNamespaceForType(complex.model.namespace)}
+              namespace={getNamespaceForType(program, complex.model.namespace)}
               apiVersion={apiVersion}
               msDate={msDate}
               author={author}

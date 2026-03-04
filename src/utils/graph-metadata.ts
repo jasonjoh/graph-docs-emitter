@@ -3,7 +3,13 @@
 
 // cSpell:ignore msgraph
 
-import { Program, ModelProperty, Type, getDoc } from '@typespec/compiler';
+import {
+  Program,
+  Namespace,
+  ModelProperty,
+  Type,
+  getDoc,
+} from '@typespec/compiler';
 import {
   isEntity,
   isComplex,
@@ -92,4 +98,23 @@ function isPropertyNullable(property: ModelProperty): boolean {
     }
   }
   return false;
+}
+
+export const DEFAULT_NAMESPACE = 'microsoft.graph';
+
+/**
+ * Walk a namespace hierarchy to resolve the @publicNamespace display name.
+ * Returns DEFAULT_NAMESPACE if no @publicNamespace is found.
+ */
+export function getNamespaceForType(
+  program: Program,
+  ns: Namespace | undefined,
+): string {
+  while (ns) {
+    if (hasPublicNamespace(program, ns)) {
+      return getPublicNamespaceName(program, ns) ?? DEFAULT_NAMESPACE;
+    }
+    ns = ns.namespace;
+  }
+  return DEFAULT_NAMESPACE;
 }

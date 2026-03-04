@@ -6,6 +6,7 @@ import { Children } from '@alloy-js/core';
 import { Model, Program } from '@typespec/compiler';
 import { formatJsonValue } from '../utils/type-formatter.js';
 import { getModelProperties } from '../utils/model-properties.js';
+import { DEFAULT_NAMESPACE } from '../utils/graph-metadata.js';
 
 export interface JsonRepresentationProps {
   program: Program;
@@ -20,7 +21,7 @@ export function JsonRepresentation(props: JsonRepresentationProps): Children {
   const lines: string[] = [];
   lines.push('{');
 
-  const ns = props.namespace ?? 'microsoft.graph';
+  const ns = props.namespace ?? DEFAULT_NAMESPACE;
   const entries: string[] = [];
 
   // Add @odata.type

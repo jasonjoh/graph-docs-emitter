@@ -10,6 +10,7 @@ import {
   isImmutable,
   isReadOnly,
 } from '@microsoft/typespec-msgraph';
+import { DEFAULT_NAMESPACE } from '../utils/graph-metadata.js';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import {
   ResolvedOperation,
@@ -264,7 +265,7 @@ function buildJsonBody(props: ApiMethodPageProps, forRequest = false): string {
   const model = props.entityModel;
   if (!model) return '{}';
 
-  const ns = props.namespace ?? 'microsoft.graph';
+  const ns = props.namespace ?? DEFAULT_NAMESPACE;
   const program = props.program;
   const entries: string[] = [];
 
