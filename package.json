@@ -17,23 +17,10 @@
     "clean": "rimraf dist/",
     "lint": "eslint ."
   },
-  "peerDependencies": {
-    "@alloy-js/core": "^0.22.0",
-    "@microsoft/typespec-msgraph": ">=1.0.0",
-    "@typespec/compiler": "^1.9.0"
-  },
-  "overrides": {
-    "@microsoft/typespec-msgraph": "^1.0.3",
-    "@typespec/compiler": "^1.12.0"
-  },
   "devDependencies": {
-    "@alloy-js/cli": "^0.22.0",
-    "@alloy-js/core": "^0.22.0",
+    "@alloy-js/cli": "^0.23.0",
     "@alloy-js/rollup-plugin": "^0.1.1",
-    "@microsoft/typespec-msgraph": "^1.0.3",
     "@tony.ganchev/eslint-plugin-header": "^3.4.4",
-    "@typespec/compiler": "^1.12.0",
-    "@typespec/emitter-framework": "^0.17.0",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -42,5 +29,16 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.4",
     "vitest": "^4.1.7"
+  },
+  "overrides": {
+    "@typespec/compiler": "^1.12.0"
+  },
+  "dependencies": {
+    "@typespec/emitter-framework": "^0.16.0"
+  },
+  "peerDependencies": {
+    "@alloy-js/core": "^0.22.0",
+    "@microsoft/typespec-msgraph": "^1.0.3",
+    "@typespec/compiler": "^1.12.0"
   }
 }
