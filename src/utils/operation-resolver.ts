@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Program, Operation, getDoc } from '@typespec/compiler';
+import { Program, Operation, Model, getDoc } from '@typespec/compiler';
 import {
   GraphRouteInfo,
   GraphEntityInfo,
+  GlobalOperationInterfaceInfo,
   normalizeDescription,
 } from './type-collector.js';
-import { getAgsAttributes } from '@microsoft/typespec-msgraph';
+import {
+  getAgsAttributes,
+  isGlobalOperation,
+} from '@microsoft/typespec-msgraph';
 
 /**
  * Represents a resolved HTTP operation ready for documentation generation.
@@ -33,6 +37,8 @@ export interface ResolvedOperation {
   returnTypeName: string | undefined;
   /** Original TypeSpec Operation (for reading decorators) */
   typespecOperation?: Operation;
+  /** The request body model for actions/functions (from operation parameters) */
+  requestBodyModel?: Model;
 }
 
 /**
@@ -191,6 +197,90 @@ export function resolveOperationsFromRoute(
   return resolved;
 }
 
+/**
+ * Resolve operations from a global operation interface (no @graphRoute)
+ * into documentation-ready descriptors. Only includes operations
+ * decorated with @globalOperation.
+ */
+export function resolveGlobalOperations(
+  program: Program,
+  globalOpInterface: GlobalOperationInterfaceInfo,
+  routePath: string,
+): ResolvedOperation[] {
+  const resolved: ResolvedOperation[] = [];
+  const { resource: resourceSegment, isCollection } =
+    parseRouteSegments(routePath);
+  const entityName = globalOpInterface.entityName;
+
+  for (const [opName, operation] of globalOpInterface.iface.operations) {
+    if (!isGlobalOperation(program, operation)) continue;
+    const resolved_op = resolveOperation(
+      program,
+      operation,
+      opName,
+      routePath,
+      resourceSegment,
+      isCollection,
+      entityName,
+    );
+    if (resolved_op) {
+      resolved.push(resolved_op);
+    }
+  }
+
+  // Also check source interfaces
+  for (const sourceIface of globalOpInterface.iface.sourceInterfaces) {
+    for (const [opName, operation] of sourceIface.operations) {
+      if (!isGlobalOperation(program, operation)) continue;
+      const resolved_op = resolveOperation(
+        program,
+        operation,
+        opName,
+        routePath,
+        resourceSegment,
+        isCollection,
+        entityName,
+      );
+      if (resolved_op) {
+        resolved.push(resolved_op);
+      }
+    }
+  }
+
+  return resolved;
+}
+
+/**
+ * Build a route index mapping entity names to their collection and resource routes.
+ */
+export function buildEntityRouteIndex(
+  routes: GraphRouteInfo[],
+  getEntityName: (route: GraphRouteInfo) => string | undefined,
+): Map<string, { collectionRoutes: string[]; resourceRoutes: string[] }> {
+  const index = new Map<
+    string,
+    { collectionRoutes: string[]; resourceRoutes: string[] }
+  >();
+
+  for (const route of routes) {
+    const entityName = getEntityName(route);
+    if (!entityName) continue;
+
+    if (!index.has(entityName)) {
+      index.set(entityName, { collectionRoutes: [], resourceRoutes: [] });
+    }
+    const entry = index.get(entityName)!;
+    const { isCollection } = parseRouteSegments(route.path);
+    if (isCollection) {
+      entry.collectionRoutes.push(route.path);
+    } else {
+      entry.resourceRoutes.push(route.path);
+    }
+  }
+
+  return index;
+}
+
 function resolveOperation(
   program: Program,
   operation: Operation,
@@ -226,6 +316,7 @@ function resolveOperation(
     ) {
       const returnTypeName = getActionReturnTypeName(operation);
       const displayName = entityName ? `${entityName}: ${opName}` : opName;
+      const requestBodyModel = getActionParametersModel(operation);
       return {
         name: displayName,
         httpMethod: pattern.httpMethod,
@@ -236,6 +327,7 @@ function resolveOperation(
         actionOrFunctionName: opName,
         returnTypeName,
         typespecOperation: operation,
+        requestBodyModel,
       };
     }
 
@@ -279,6 +371,7 @@ function resolveOperation(
     actionOrFunctionName: opName,
     returnTypeName: getActionReturnTypeName(operation),
     typespecOperation: operation,
+    requestBodyModel: getActionParametersModel(operation),
   };
 }
 
@@ -385,6 +478,19 @@ function getActionReturnTypeName(operation: Operation): string | undefined {
   }
   if (returnType.kind === 'Intrinsic' && returnType.name === 'void') {
     return undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Extract the action/function parameters model from an operation.
+ * Uses the operation's parameters model which contains the
+ * request body properties for actions.
+ */
+function getActionParametersModel(operation: Operation): Model | undefined {
+  const params = operation.parameters;
+  if (params && params.properties.size > 0) {
+    return params;
   }
   return undefined;
 }

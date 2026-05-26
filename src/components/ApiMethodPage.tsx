@@ -3,13 +3,14 @@
 
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
-import { Model, Program } from '@typespec/compiler';
+import { Model, Program, getDoc } from '@typespec/compiler';
 import {
   isContains,
   isComputed,
   isImmutable,
   isReadOnly,
 } from '@microsoft/typespec-msgraph';
+import { isHeader, isPathParam, isQueryParam } from '@typespec/http';
 import { DEFAULT_NAMESPACE } from '../utils/graph-metadata.js';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import {
@@ -17,7 +18,7 @@ import {
   DocOperationKind,
   getStandardCrudDescription,
 } from '../utils/operation-resolver.js';
-import { formatJsonValue } from '../utils/type-formatter.js';
+import { formatTypeName, formatJsonValue } from '../utils/type-formatter.js';
 import { getExampleRequest } from '../decorators/example-request.js';
 import { getExampleResponse } from '../decorators/example-response.js';
 
@@ -71,7 +72,7 @@ export function ApiMethodPage(props: ApiMethodPageProps): Children {
     '|:--|:--|\n',
     '| Authorization | `Bearer {token}.` Required. Learn more about [authentication and authorization](/graph/auth/auth-concepts). |\n',
     renderContentTypeHeader(op),
-    renderRequestBody(op),
+    renderRequestBody(op, props.program),
     renderResponse(op),
     renderExample(op, props),
   ];
@@ -108,7 +109,7 @@ function renderQueryParameters(op: ResolvedOperation): Children {
   ];
 }
 
-function renderRequestBody(op: ResolvedOperation): Children {
+function renderRequestBody(op: ResolvedOperation, program: Program): Children {
   if (
     op.httpMethod.toUpperCase() === 'GET' ||
     op.httpMethod.toUpperCase() === 'DELETE'
@@ -118,6 +119,35 @@ function renderRequestBody(op: ResolvedOperation): Children {
       "Don't supply a request body for this method.\n",
     ];
   }
+
+  // For actions with a request body model, show the parameters table
+  if (op.requestBodyModel && op.requestBodyModel.properties.size > 0) {
+    const rows: string[] = [];
+    for (const [name, property] of op.requestBodyModel.properties) {
+      // Skip path, header, and query parameters — they aren't in the body
+      if (
+        isPathParam(program, property) ||
+        isHeader(program, property) ||
+        isQueryParam(program, property)
+      ) {
+        continue;
+      }
+      const typeName = formatTypeName(property.type);
+      const description = getDoc(program, property) ?? '';
+      rows.push(`| ${name} | ${typeName} | ${description} |`);
+    }
+
+    if (rows.length > 0) {
+      return [
+        '\n## Request body\n\n',
+        'In the request body, supply a JSON representation of the parameters.\n\n',
+        '| Property | Type | Description |\n',
+        '|:--|:--|:--|\n',
+        ...rows.map((r) => r + '\n'),
+      ];
+    }
+  }
+
   return [
     '\n## Request body\n\n',
     'In the request body, supply a JSON representation of the resource.\n',
@@ -231,6 +261,14 @@ function getRequestBodyJson(
   if (customExample) {
     return JSON.stringify(customExample, null, 2);
   }
+  // For actions with a request body model, use the action parameters
+  if (props.operation.requestBodyModel) {
+    return buildJsonBodyFromModel(
+      props.operation.requestBodyModel,
+      props.namespace,
+      props.program,
+    );
+  }
   if (props.entityModel) {
     return buildJsonBody(props, true);
   }
@@ -312,4 +350,31 @@ function buildCollectionJsonBody(
     '\n  ]\n' +
     '}'
   );
+}
+
+/**
+ * Build a JSON body from an arbitrary model (e.g., action parameters).
+ * Excludes @path, @header, and @query parameters.
+ */
+function buildJsonBodyFromModel(
+  model: Model,
+  _ns: string,
+  program?: Program,
+): string {
+  const entries: string[] = [];
+
+  for (const [name, property] of model.properties) {
+    if (
+      program &&
+      (isPathParam(program, property) ||
+        isHeader(program, property) ||
+        isQueryParam(program, property))
+    ) {
+      continue;
+    }
+    entries.push(`  "${name}": ${formatJsonValue(property.type)}`);
+  }
+
+  if (entries.length === 0) return '{}';
+  return '{\n' + entries.join(',\n') + '\n}';
 }
