@@ -21,6 +21,7 @@
     "@alloy-js/cli": "^0.23.0",
     "@alloy-js/rollup-plugin": "^0.1.1",
     "@tony.ganchev/eslint-plugin-header": "^3.4.4",
+    "@types/node": "^25.9.1",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",

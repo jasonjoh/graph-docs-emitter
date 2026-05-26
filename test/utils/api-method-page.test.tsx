@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
 import { renderTree, printTree } from '@alloy-js/core';
-import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec } from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
