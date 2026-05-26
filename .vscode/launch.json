@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Emitter via tsp compile",
+      "program": "tsp",
+      "args": ["compile", "."],
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "npm: build",
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "outputCapture": "console"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Emitter (copilot-chat spec)",
+      "program": "${workspaceFolder}/node_modules/@typespec/compiler/cmd/tsp.js",
+      "args": ["compile", "--emit", "@microsoft/typespec-graph-docs-emitter", "sample-specs/copilot-chat.tsp"],
+      "cwd": "${workspaceFolder}",
+      "skipFiles": ["<node_internals>/**"],
+      "preLaunchTask": "npm: build",
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "outputCapture": "console"
+    }
+  ]
+}
