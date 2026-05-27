@@ -32,7 +32,7 @@ export function JsonRepresentation(props: JsonRepresentationProps): Children {
   for (const [name, property] of getModelProperties(
     props.program,
     props.model,
-    'exclude',
+    'all',
   )) {
     const jsonValue = formatJsonValue(property.type);
     entries.push(`  "${name}": ${jsonValue}`);

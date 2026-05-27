@@ -115,7 +115,7 @@ export function formatJsonValue(type: Type): string {
     case 'Scalar':
       return getJsonPlaceholder(type.name);
     case 'Model':
-      if (type.indexer) return '[]';
+      if (type.indexer) return `[ ${formatJsonValue(type.indexer.value)} ]`;
       if (!type.name) return '{}';
       return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
     case 'Enum':
