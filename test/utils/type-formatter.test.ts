@@ -316,7 +316,7 @@ describe('formatJsonValue', () => {
       );
     });
 
-    it('returns [] for array type', async () => {
+    it('returns [ "type" ] for array type', async () => {
       await runner.compile(
         graphSpec(`
           @complex model innerModel { value: string; }
@@ -326,7 +326,9 @@ describe('formatJsonValue', () => {
       const types = collectGraphTypes(runner.program);
       const model = types.complexTypes.find((c) => c.name === 'testModel')!;
       const prop = model.model.properties.get('items')!;
-      expect(formatJsonValue(prop.type)).toBe('[]');
+      expect(formatJsonValue(prop.type)).toBe(
+        '[ {"@odata.type": "microsoft.graph.innerModel"} ]',
+      );
     });
   });
 

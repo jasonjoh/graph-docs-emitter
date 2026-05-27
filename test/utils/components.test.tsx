@@ -829,7 +829,7 @@ describe('EnumsPage - sorting', () => {
 });
 
 describe('JsonRepresentation - edge cases', () => {
-  it('renders collection/array property as empty array', async () => {
+  it('renders collection/array property as array', async () => {
     await runner.compile(
       graphSpec(`
         @entity model testEntity {
@@ -846,7 +846,7 @@ describe('JsonRepresentation - edge cases', () => {
       <JsonRepresentation program={runner.program} model={entity.model} />,
     );
 
-    expect(result).toContain('"tags": []');
+    expect(result).toContain('"tags": [ "String" ]');
   });
 
   it('renders enum property as "String"', async () => {
@@ -915,7 +915,7 @@ describe('JsonRepresentation - edge cases', () => {
     );
   });
 
-  it('excludes @contains properties from JSON representation', async () => {
+  it('includes @contains properties in JSON representation', async () => {
     await runner.compile(
       graphSpec(`
         @entity model child {
@@ -936,7 +936,9 @@ describe('JsonRepresentation - edge cases', () => {
       <JsonRepresentation program={runner.program} model={entity.model} />,
     );
 
-    expect(result).not.toContain('children');
+    expect(result).toContain(
+      '"children": [ {"@odata.type": "microsoft.graph.child"} ]',
+    );
     expect(result).toContain('"name": "String"');
   });
 
