@@ -8,6 +8,8 @@ import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   classifyProperty,
   getDescription,
+  getNamespaceForType,
+  DEFAULT_NAMESPACE,
 } from '../../src/utils/graph-metadata.js';
 
 let runner: BasicTestRunner;
@@ -215,5 +217,51 @@ describe('getDescription', () => {
     const prop = entity.model.properties.get('id')!;
 
     expect(getDescription(runner.program, prop)).toBe('The unique identifier.');
+  });
+});
+
+describe('getNamespaceForType', () => {
+  it('returns publicNamespace name for annotated namespace', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testEntity {
+          @readOnly @computed @key id: string;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+    const ns = getNamespaceForType(runner.program, entity.model.namespace);
+
+    expect(ns).toBe('microsoft.graph');
+  });
+
+  it('returns DEFAULT_NAMESPACE when namespace is undefined', async () => {
+    await runner.compile(
+      graphSpec(`
+      @entity model testEntity {
+        @readOnly @computed @key id: string;
+      }
+    `),
+    );
+    const ns = getNamespaceForType(runner.program, undefined);
+    expect(ns).toBe(DEFAULT_NAMESPACE);
+  });
+
+  it('returns DEFAULT_NAMESPACE for non-public namespace', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testItem {
+          @readOnly @computed @key id: string;
+        }
+    `),
+    );
+
+    // Get a namespace that doesn't have @publicNamespace — the global namespace
+    const globalNs = runner.program.getGlobalNamespaceType();
+    // The global namespace itself has no @publicNamespace, so it should fall back
+    const result = getNamespaceForType(runner.program, globalNs);
+    expect(result).toBe(DEFAULT_NAMESPACE);
   });
 });

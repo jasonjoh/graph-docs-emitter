@@ -9,9 +9,12 @@ import { createGraphDocsTestRunner, graphSpec } from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
+  resolveGlobalOperations,
+  buildEntityRouteIndex,
   DocOperationKind,
   getStandardCrudDescription,
 } from '../../src/utils/operation-resolver.js';
+import { GraphRouteInfo } from '../../src/utils/type-collector.js';
 
 let runner: BasicTestRunner;
 
@@ -457,5 +460,215 @@ describe('resolveOperationsFromRoute', () => {
       )!;
       expect(postOp.parentEntityName).toBe('users');
     });
+  });
+
+  describe('Put operations', () => {
+    it('resolves PutWithResponse as Update docKind with PUT method', async () => {
+      await runner.compile(
+        graphSpec(`
+          @entity model testItem {
+            @readOnly @computed @key id: string;
+            name: string;
+          }
+          @graphRoute("items/{id}")
+          interface testItemsById extends Resource<testItem> {
+            put is GraphOps.PutWithResponse;
+          }
+      `),
+      );
+
+      const types = collectGraphTypes(runner.program);
+      const route = types.routes.find((r) => r.path.includes('items'))!;
+      const ops = resolveOperationsFromRoute(
+        runner.program,
+        route,
+        types.entities,
+        'testItem',
+      );
+
+      const putOp = ops.find((o) => o.docKind === DocOperationKind.Update)!;
+      expect(putOp).toBeDefined();
+      expect(putOp.httpMethod).toBe('PUT');
+      expect(putOp.returnTypeName).toBe('testItem');
+    });
+  });
+});
+
+describe('resolveGlobalOperations', () => {
+  it('resolves @globalOperation actions', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testItem {
+          @readOnly @computed @key id: string;
+        }
+        @operationParameters model resetParams {
+          reason: string;
+        }
+        @graphRoute("items/{id}")
+        interface testItemsById extends Resource<testItem> {
+          get is GraphOps.GetResource;
+        }
+        interface testItemActions extends Resource<testItem> {
+          @globalOperation resetState is GraphOps.Action<TActionParams=resetParams, TReturnType=testItem>;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    expect(types.globalOperationInterfaces.length).toBeGreaterThan(0);
+
+    const globalIface = types.globalOperationInterfaces.find(
+      (g) => g.entityName === 'testItem',
+    )!;
+    expect(globalIface).toBeDefined();
+
+    const route = types.routes.find((r) => r.path.includes('items'))!;
+    const ops = resolveGlobalOperations(
+      runner.program,
+      globalIface,
+      route.path,
+    );
+
+    expect(ops.length).toBeGreaterThan(0);
+    const actionOp = ops.find((o) => o.docKind === DocOperationKind.Action);
+    expect(actionOp).toBeDefined();
+    expect(actionOp!.actionOrFunctionName).toBe('resetState');
+    expect(actionOp!.httpMethod).toBe('POST');
+  });
+
+  it('skips operations not decorated with @globalOperation', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testItem {
+          @readOnly @computed @key id: string;
+        }
+        @operationParameters model actionParams {
+          value: string;
+        }
+        @graphRoute("items/{id}")
+        interface testItemsById extends Resource<testItem> {
+          get is GraphOps.GetResource;
+        }
+        interface testItemActions extends Resource<testItem> {
+          @globalOperation doThis is GraphOps.Action<TActionParams=actionParams, TReturnType=testItem>;
+          doThat is GraphOps.Action<TActionParams=actionParams, TReturnType=testItem>;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const globalIface = types.globalOperationInterfaces.find(
+      (g) => g.entityName === 'testItem',
+    )!;
+
+    const route = types.routes.find((r) => r.path.includes('items'))!;
+    const ops = resolveGlobalOperations(
+      runner.program,
+      globalIface,
+      route.path,
+    );
+
+    // Only the @globalOperation op should be resolved
+    const opNames = ops.map((o) => o.actionOrFunctionName);
+    expect(opNames).toContain('doThis');
+    expect(opNames).not.toContain('doThat');
+  });
+});
+
+describe('buildEntityRouteIndex', () => {
+  it('indexes collection and resource routes by entity name', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testItem {
+          @readOnly @computed @key id: string;
+        }
+        @graphRoute("items")
+        interface testItems extends Collection<testItem> {}
+        @graphRoute("items/{id}")
+        interface testItemsById extends Resource<testItem> {}
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const getEntityName = (route: GraphRouteInfo) => {
+      for (const src of route.iface.sourceInterfaces) {
+        if (src.templateMapper?.args) {
+          for (const arg of src.templateMapper.args) {
+            if (arg.entityKind === 'Type' && arg.kind === 'Model' && arg.name) {
+              return arg.name;
+            }
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const index = buildEntityRouteIndex(types.routes, getEntityName);
+
+    expect(index.has('testItem')).toBe(true);
+    const entry = index.get('testItem')!;
+    expect(entry.collectionRoutes).toContain('items');
+    expect(entry.resourceRoutes.some((r) => r.includes('{id}'))).toBe(true);
+  });
+
+  it('produces empty index when getEntityName returns undefined for all routes', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testItem {
+          @readOnly @computed @key id: string;
+        }
+        @graphRoute("items")
+        interface testItems extends Collection<testItem> {}
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    // Simulate entity name resolution failing for all routes
+    const index = buildEntityRouteIndex(types.routes, () => undefined);
+
+    expect(index.size).toBe(0);
+  });
+
+  it('handles multiple routes for the same entity', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model message {
+          @readOnly @computed @key id: string;
+        }
+        @entity model user {
+          @readOnly @computed @key id: string;
+          @contains messages: message[];
+        }
+        @graphRoute("users")
+        interface users extends Collection<user> {}
+        @graphRoute("users/{userId}")
+        interface usersById extends Resource<user> {}
+        @graphRoute("users/{userId}/messages")
+        interface userMessages extends Collection<message> {}
+        @graphRoute("users/{userId}/messages/{messageId}")
+        interface userMessagesById extends Resource<message> {}
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const getEntityName = (route: GraphRouteInfo) => {
+      for (const src of route.iface.sourceInterfaces) {
+        if (src.templateMapper?.args) {
+          for (const arg of src.templateMapper.args) {
+            if (arg.entityKind === 'Type' && arg.kind === 'Model' && arg.name) {
+              return arg.name;
+            }
+          }
+        }
+      }
+      return undefined;
+    };
+
+    const index = buildEntityRouteIndex(types.routes, getEntityName);
+
+    const entry = index.get('message')!;
+    expect(entry).toBeDefined();
+    expect(entry.collectionRoutes.length).toBeGreaterThanOrEqual(1);
+    expect(entry.resourceRoutes.length).toBeGreaterThanOrEqual(1);
   });
 });
