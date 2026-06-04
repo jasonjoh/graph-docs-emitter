@@ -1,7 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { Type, Model, Scalar, Union } from '@typespec/compiler';
+import {
+  Type,
+  Model,
+  Scalar,
+  Union,
+  isArrayModelType,
+  isRecordModelType,
+} from '@typespec/compiler';
 import { DEFAULT_NAMESPACE } from './graph-metadata.js';
 
 /**
@@ -29,18 +36,20 @@ export function formatTypeName(type: Type): string {
 }
 
 function formatModelType(model: Model): string {
-  // Check if it's a collection (array) — models with an indexer
-  if (model.indexer) {
-    const elementType = model.indexer.value;
+  // Array types (T[]) render as "ElementType collection"
+  if (isArrayModelType(model)) {
+    const elementType = model.indexer!.value;
     return `${formatTypeName(elementType)} collection`;
   }
 
-  // Built-in/anonymous models
-  if (!model.name || model.name === 'Record') {
-    return 'Json';
+  // Named models (including named maps like `model X is Record<T>`)
+  // render as a linked reference
+  if (model.name && model.name !== 'Record') {
+    return `[${model.name}](${model.name.toLowerCase()}.md)`;
   }
 
-  return `[${model.name}](${model.name.toLowerCase()}.md)`;
+  // Anonymous or unnamed record/models
+  return 'Json';
 }
 
 function formatScalarType(scalar: Scalar): string {
@@ -115,8 +124,13 @@ export function formatJsonValue(type: Type): string {
     case 'Scalar':
       return getJsonPlaceholder(type.name);
     case 'Model':
-      if (type.indexer) return '[]';
-      if (!type.name) return '{}';
+      if (isArrayModelType(type)) {
+        return `[ ${formatJsonValue(type.indexer!.value)} ]`;
+      }
+      if (type.name && type.name !== 'Record') {
+        return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
+      }
+      if (!type.name || isRecordModelType(type)) return '{}';
       return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
     case 'Enum':
       return '"String"';

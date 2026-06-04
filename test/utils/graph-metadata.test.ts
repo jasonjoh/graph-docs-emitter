@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
-import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec } from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   classifyProperty,
@@ -18,12 +18,14 @@ beforeEach(async () => {
 
 describe('classifyProperty', () => {
   it('identifies @computed property', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @computed displayName: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -35,11 +37,13 @@ describe('classifyProperty', () => {
   });
 
   it('identifies @readOnly property', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -51,12 +55,14 @@ describe('classifyProperty', () => {
   });
 
   it('identifies @immutable property', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @immutable @requiredForCreate tenantId: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -68,12 +74,14 @@ describe('classifyProperty', () => {
   });
 
   it('identifies @requiredForCreate property', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @requiredForCreate displayName: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -87,7 +95,8 @@ describe('classifyProperty', () => {
   });
 
   it('identifies @contains (containment) property', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model child {
           @readOnly @computed @key id: string;
         }
@@ -95,7 +104,8 @@ describe('classifyProperty', () => {
           @readOnly @computed @key id: string;
           @contains children: child[];
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'parent')!;
@@ -106,11 +116,13 @@ describe('classifyProperty', () => {
   });
 
   it('identifies nullable property (union with null)', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @complex model testModel {
           value: string | null;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const model = types.complexTypes.find((c) => c.name === 'testModel')!;
@@ -121,11 +133,13 @@ describe('classifyProperty', () => {
   });
 
   it('identifies non-nullable property', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @complex model testModel {
           value: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const model = types.complexTypes.find((c) => c.name === 'testModel')!;
@@ -136,11 +150,13 @@ describe('classifyProperty', () => {
   });
 
   it('identifies union without null as non-nullable', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @complex model testModel {
           value: string | int32;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const model = types.complexTypes.find((c) => c.name === 'testModel')!;
@@ -153,12 +169,14 @@ describe('classifyProperty', () => {
 
 describe('getDescription', () => {
   it('returns doc comment string', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         /** A test entity. */
         @entity model testEntity {
           @readOnly @computed @key id: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -167,11 +185,13 @@ describe('getDescription', () => {
   });
 
   it('returns undefined when no doc comment', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testEntity {
           @readOnly @computed @key id: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;
@@ -181,12 +201,14 @@ describe('getDescription', () => {
   });
 
   it('returns property doc comment', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testEntity {
           /** The unique identifier. */
           @readOnly @computed @key id: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity')!;

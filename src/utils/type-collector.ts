@@ -21,6 +21,7 @@ import {
   hasGraphRoute,
   getGraphRoutePaths,
   getAgsAttributes,
+  isGlobalOperation,
 } from '@microsoft/typespec-msgraph';
 
 /**
@@ -59,6 +60,18 @@ export interface GraphRouteInfo {
 }
 
 /**
+ * An interface without @graphRoute that contains @globalOperation operations.
+ * These are OData bound actions/functions on an entity type.
+ */
+export interface GlobalOperationInterfaceInfo {
+  iface: Interface;
+  /** The entity model name from Resource<T> or Collection<T> */
+  entityName: string;
+  /** Whether this extends Collection<T> (true) or Resource<T> (false) */
+  isCollection: boolean;
+}
+
+/**
  * Collected Graph types from the TypeSpec program, organized for emission.
  */
 export interface CollectedTypes {
@@ -66,6 +79,7 @@ export interface CollectedTypes {
   complexTypes: GraphComplexTypeInfo[];
   enums: GraphEnumInfo[];
   routes: GraphRouteInfo[];
+  globalOperationInterfaces: GlobalOperationInterfaceInfo[];
 }
 
 /**
@@ -137,6 +151,30 @@ export function normalizeDescription(
 }
 
 /**
+ * Extract the entity name and collection/resource classification from an
+ * interface's source interfaces (e.g., `extends Resource<T>` or `extends Collection<T>`).
+ */
+function getEntityInfoFromSourceInterfaces(
+  iface: Interface,
+): { entityName: string; isCollection: boolean } | undefined {
+  for (const src of iface.sourceInterfaces) {
+    const srcName = src.name;
+    if (srcName !== 'Resource' && srcName !== 'Collection') continue;
+    if (src.templateMapper?.args) {
+      for (const arg of src.templateMapper.args) {
+        if (arg.entityKind === 'Type' && arg.kind === 'Model' && arg.name) {
+          return {
+            entityName: arg.name,
+            isCollection: srcName === 'Collection',
+          };
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+/**
  * Walk the TypeSpec program and collect all Graph-relevant types.
  * Only includes types defined in @publicNamespace namespaces,
  * filtering out library/reference types and hidden types.
@@ -146,6 +184,7 @@ export function collectGraphTypes(program: Program): CollectedTypes {
   const complexTypes: GraphComplexTypeInfo[] = [];
   const enums: GraphEnumInfo[] = [];
   const routes: GraphRouteInfo[] = [];
+  const globalOperationInterfaces: GlobalOperationInterfaceInfo[] = [];
 
   navigateProgram(program, {
     model(model) {
@@ -198,19 +237,34 @@ export function collectGraphTypes(program: Program): CollectedTypes {
     },
 
     interface(iface) {
-      if (!hasGraphRoute(program, iface)) return;
       if (!iface.namespace || !isInPublicNamespace(program, iface.namespace)) {
         return;
       }
       // Skip hidden interfaces
       if (isHidden(program, iface)) return;
 
-      const paths = getGraphRoutePaths(program, iface);
-      if (paths && paths.length > 0) {
-        routes.push({ path: paths[0], iface });
+      if (hasGraphRoute(program, iface)) {
+        const paths = getGraphRoutePaths(program, iface);
+        if (paths && paths.length > 0) {
+          routes.push({ path: paths[0], iface });
+        }
+      } else {
+        // Check for @globalOperation-decorated operations
+        const hasGlobalOp = [...iface.operations.values()].some((op) =>
+          isGlobalOperation(program, op),
+        );
+        if (hasGlobalOp) {
+          const entityInfo = getEntityInfoFromSourceInterfaces(iface);
+          if (entityInfo) {
+            globalOperationInterfaces.push({
+              iface,
+              ...entityInfo,
+            });
+          }
+        }
       }
     },
   });
 
-  return { entities, complexTypes, enums, routes };
+  return { entities, complexTypes, enums, routes, globalOperationInterfaces };
 }

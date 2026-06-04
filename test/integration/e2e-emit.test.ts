@@ -1,8 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-// cSpell:ignore msgraph testitem onEmit
+// cSpell:ignore msgraph testitem onEmit testuser testaddress
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { describe, it, expect, beforeAll } from 'vitest';
 import { resolvePath } from '@typespec/compiler';
 import { createTester } from '@typespec/compiler/testing';
@@ -13,7 +15,10 @@ import type {
 import { graphSpec } from '../test-host.js';
 
 const EMITTER_NAME = '@microsoft/typespec-graph-docs-emitter';
-const EMITTER_BASE = resolvePath(import.meta.dirname, '../..');
+const EMITTER_BASE = resolvePath(
+  dirname(fileURLToPath(import.meta.url)),
+  '../..',
+);
 const TESTER_LIBRARIES = [
   '@microsoft/typespec-msgraph',
   '@typespec/http',

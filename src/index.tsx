@@ -11,6 +11,8 @@ import { GraphDocsEmitterOptions } from './lib.js';
 import { collectGraphTypes, GraphRouteInfo } from './utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
+  resolveGlobalOperations,
+  buildEntityRouteIndex,
   ResolvedOperation,
 } from './utils/operation-resolver.js';
 import { getTypeFilename, getMethodFilename } from './utils/filename.js';
@@ -56,6 +58,44 @@ export async function $onEmit(context: EmitContext<GraphDocsEmitterOptions>) {
       existing.push(...ops);
       operationsByEntity.set(entityName, existing);
     }
+  }
+
+  // Process @globalOperation interfaces (no @graphRoute)
+  const entityRouteIndex = buildEntityRouteIndex(
+    types.routes,
+    getEntityNameForRoute,
+  );
+  for (const globalOpIface of types.globalOperationInterfaces) {
+    const entry = entityRouteIndex.get(globalOpIface.entityName);
+    if (!entry) continue;
+
+    // Pick route path: collection route for Collection<T>, resource route for Resource<T>
+    const routePaths = globalOpIface.isCollection
+      ? entry.collectionRoutes
+      : entry.resourceRoutes;
+    const routePath = routePaths[0];
+    if (!routePath) continue;
+
+    const ops = resolveGlobalOperations(program, globalOpIface, routePath);
+    if (ops.length > 0) {
+      const existing = operationsByEntity.get(globalOpIface.entityName) ?? [];
+      existing.push(...ops);
+      operationsByEntity.set(globalOpIface.entityName, existing);
+    }
+  }
+
+  // Deduplicate operations per entity by route path + action name + HTTP method
+  for (const [entityName, ops] of operationsByEntity) {
+    const seen = new Set<string>();
+    const deduped: ResolvedOperation[] = [];
+    for (const op of ops) {
+      const key = `${op.httpMethod}|${op.routePath}|${op.actionOrFunctionName ?? op.docKind}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        deduped.push(op);
+      }
+    }
+    operationsByEntity.set(entityName, deduped);
   }
 
   // Collect all method pages

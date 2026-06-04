@@ -3,7 +3,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { BasicTestRunner } from '@typespec/compiler/testing';
-import { createGraphDocsTestRunner, graphSpec} from '../test-host.js';
+import { createGraphDocsTestRunner, graphSpec } from '../test-host.js';
 import { collectGraphTypes } from '../../src/utils/type-collector.js';
 import {
   resolveOperationsFromRoute,
@@ -18,13 +18,15 @@ beforeEach(async () => {
 
 describe('type-collector', () => {
   it('collects entities annotated with @entity', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         /** A test entity. */
         @entity model testEntity {
           @readOnly @computed @key id: string;
           @computed displayName: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const entity = types.entities.find((e) => e.name === 'testEntity');
@@ -33,12 +35,14 @@ describe('type-collector', () => {
   });
 
   it('collects complex types annotated with @complex', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         /** A complex type. */
         @complex model testComplex {
           value: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const complex = types.complexTypes.find((c) => c.name === 'testComplex');
@@ -47,14 +51,16 @@ describe('type-collector', () => {
   });
 
   it('collects enums in public namespaces', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         /** The status. */
         enum testStatus {
           active,
           inactive,
           unknownFutureValue
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const enumInfo = types.enums.find((e) => e.name === 'testStatus');
@@ -64,7 +70,8 @@ describe('type-collector', () => {
   });
 
   it('collects routes from interfaces with @graphRoute', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
           @computed displayName: string;
@@ -73,7 +80,8 @@ describe('type-collector', () => {
         @graphRoute("items")
         interface testItems extends Collection<testItem> {
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const route = types.routes.find((r) => r.path === 'items');
@@ -81,11 +89,13 @@ describe('type-collector', () => {
   });
 
   it('skips @operationParameters models', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @operationParameters model testParams {
           value: string;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     expect(types.entities.find((e) => e.name === 'testParams')).toBeUndefined();
@@ -116,7 +126,8 @@ describe('type-collector', () => {
 
 describe('operation-resolver', () => {
   it('resolves operations from Collection interface with post', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
           @computed displayName: string;
@@ -126,7 +137,8 @@ describe('operation-resolver', () => {
         interface testItems extends Collection<testItem> {
           post is GraphOps.Post;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const route = types.routes.find((r) => r.path === 'items');
@@ -136,6 +148,7 @@ describe('operation-resolver', () => {
       runner.program,
       route!,
       types.entities,
+      'testItem',
     );
     const postOp = ops.find((o) => o.docKind === DocOperationKind.PostCreate);
     expect(postOp).toBeDefined();
@@ -143,7 +156,8 @@ describe('operation-resolver', () => {
   });
 
   it('resolves Resource interface operations', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
           @computed displayName: string;
@@ -155,7 +169,8 @@ describe('operation-resolver', () => {
           patch is GraphOps.PatchNoResponse;
           delete is GraphOps.Delete;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const route = types.routes.find((r) => r.path.includes('items'));
@@ -165,6 +180,7 @@ describe('operation-resolver', () => {
       runner.program,
       route!,
       types.entities,
+      'testItem',
     );
 
     const getOp = ops.find((o) => o.docKind === DocOperationKind.GetResource);
@@ -181,7 +197,8 @@ describe('operation-resolver', () => {
   });
 
   it('resolves action operations', async () => {
-    await runner.compile(graphSpec(`
+    await runner.compile(
+      graphSpec(`
         @entity model testItem {
           @readOnly @computed @key id: string;
           @computed displayName: string;
@@ -195,7 +212,8 @@ describe('operation-resolver', () => {
         interface testItemsById extends Resource<testItem> {
           doSomething is GraphOps.Action<TActionParams=testActionParams, TReturnType=testItem>;
         }
-    `));
+    `),
+    );
 
     const types = collectGraphTypes(runner.program);
     const route = types.routes.find((r) => r.path.includes('items'));
@@ -205,6 +223,7 @@ describe('operation-resolver', () => {
       runner.program,
       route!,
       types.entities,
+      'testItem',
     );
     const actionOp = ops.find((o) => o.docKind === DocOperationKind.Action);
     expect(actionOp).toBeDefined();

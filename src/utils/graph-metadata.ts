@@ -25,6 +25,7 @@ import {
   getGraphRoutePaths,
   hasGraphRoute,
   getAddressUrl,
+  isGlobalOperation,
 } from '@microsoft/typespec-msgraph';
 
 // Re-export decorator accessors for convenient use across the emitter.
@@ -43,6 +44,7 @@ export {
   getGraphRoutePaths,
   hasGraphRoute,
   getAddressUrl,
+  isGlobalOperation,
 };
 
 /**
