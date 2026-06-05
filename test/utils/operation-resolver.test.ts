@@ -492,6 +492,118 @@ describe('resolveOperationsFromRoute', () => {
       expect(putOp.returnTypeName).toBe('testItem');
     });
   });
+
+  describe('deduplication', () => {
+    it('does not produce duplicate operations from source interfaces', async () => {
+      await runner.compile(
+        graphSpec(`
+          @entity model testItem {
+            @readOnly @computed @key id: string;
+          }
+          @graphRoute("items/{id}")
+          interface testItemsById extends Resource<testItem> {
+            get is GraphOps.GetResource;
+            patch is GraphOps.PatchNoResponse;
+            delete is GraphOps.Delete;
+          }
+      `),
+      );
+
+      const types = collectGraphTypes(runner.program);
+      const route = types.routes.find((r) => r.path.includes('items'))!;
+      const ops = resolveOperationsFromRoute(
+        runner.program,
+        route,
+        types.entities,
+        'testItem',
+      );
+
+      // Each operation kind should appear exactly once
+      const getOps = ops.filter(
+        (o) => o.docKind === DocOperationKind.GetResource,
+      );
+      const updateOps = ops.filter(
+        (o) => o.docKind === DocOperationKind.Update,
+      );
+      const deleteOps = ops.filter(
+        (o) => o.docKind === DocOperationKind.Delete,
+      );
+      expect(getOps).toHaveLength(1);
+      expect(updateOps).toHaveLength(1);
+      expect(deleteOps).toHaveLength(1);
+    });
+  });
+
+  describe('get alias disambiguation', () => {
+    it('resolves get alias as GetResource on single-resource route', async () => {
+      await runner.compile(
+        graphSpec(`
+          @entity model testItem {
+            @readOnly @computed @key id: string;
+          }
+
+          interface LocalOps {
+            get is GraphOps.GetResource;
+          }
+
+          @graphRoute("items/{id}")
+          interface testItemsById extends Resource<testItem> {
+            get is LocalOps.get;
+          }
+      `),
+      );
+
+      const types = collectGraphTypes(runner.program);
+      const route = types.routes.find((r) => r.path.includes('{id}'))!;
+      const ops = resolveOperationsFromRoute(
+        runner.program,
+        route,
+        types.entities,
+        'testItem',
+      );
+
+      const getOp = ops.find((o) => o.httpMethod === 'GET');
+      expect(getOp).toBeDefined();
+      expect(getOp!.docKind).toBe(DocOperationKind.GetResource);
+    });
+  });
+
+  describe('requestBodyModel filtering', () => {
+    it('excludes @path parameters from requestBodyModel', async () => {
+      await runner.compile(
+        graphSpec(`
+          @entity model testItem {
+            @readOnly @computed @key id: string;
+          }
+          @operationParameters model doThingParams {
+            /** The reason. */
+            reason: string;
+          }
+          @graphRoute("items/{id}")
+          interface testItemsById extends Resource<testItem> {
+            doThing is GraphOps.Action<TActionParams=doThingParams>;
+          }
+      `),
+      );
+
+      const types = collectGraphTypes(runner.program);
+      const route = types.routes.find((r) => r.path.includes('{id}'))!;
+      const ops = resolveOperationsFromRoute(
+        runner.program,
+        route,
+        types.entities,
+        'testItem',
+      );
+
+      const actionOp = ops.find((o) => o.docKind === DocOperationKind.Action)!;
+      expect(actionOp.requestBodyModel).toBeDefined();
+
+      // requestBodyModel should only contain body params, not route params
+      const paramNames = [...actionOp.requestBodyModel!.properties.keys()];
+      expect(paramNames).toContain('reason');
+      expect(paramNames).not.toContain('graphRouteParams');
+    });
+  });
 });
 
 describe('resolveGlobalOperations', () => {

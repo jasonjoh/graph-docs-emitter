@@ -22,7 +22,7 @@ export interface PropertiesTableProps {
  * Navigation properties are handled by RelationshipsTable.
  */
 export function PropertiesTable(props: PropertiesTableProps): Children {
-  const rows: string[] = [];
+  const rows: { name: string; row: string }[] = [];
 
   for (const [name, property] of getModelProperties(
     props.program,
@@ -33,18 +33,18 @@ export function PropertiesTable(props: PropertiesTableProps): Children {
     const description = escapeMarkdownCell(
       getDoc(props.program, property) ?? TODO_DESCRIPTION,
     );
-    rows.push(`| ${name} | ${typeName} | ${description} |`);
+    rows.push({ name, row: `| ${name} | ${typeName} | ${description} |` });
   }
 
   if (rows.length === 0) return [];
 
-  rows.sort((a, b) => a.localeCompare(b));
+  rows.sort((a, b) => a.name.localeCompare(b.name));
 
   return [
     '\n## Properties\n\n',
     '| Property | Type | Description |\n',
     '|:--|:--|:--|\n',
-    ...rows.map((r) => r + '\n'),
+    ...rows.map((r) => r.row + '\n'),
   ];
 }
 

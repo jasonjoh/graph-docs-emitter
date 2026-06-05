@@ -10,7 +10,6 @@ import {
   isImmutable,
   isReadOnly,
 } from '@microsoft/typespec-msgraph';
-import { isHeader, isPathParam, isQueryParam } from '@typespec/http';
 import { DEFAULT_NAMESPACE } from '../utils/graph-metadata.js';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import {
@@ -138,14 +137,6 @@ function renderRequestBody(op: ResolvedOperation, program: Program): Children {
   if (op.requestBodyModel && op.requestBodyModel.properties.size > 0) {
     const rows: string[] = [];
     for (const [name, property] of op.requestBodyModel.properties) {
-      // Skip path, header, and query parameters — they aren't in the body
-      if (
-        isPathParam(program, property) ||
-        isHeader(program, property) ||
-        isQueryParam(program, property)
-      ) {
-        continue;
-      }
       const typeName = formatTypeName(property.type);
       const description = escapeMarkdownCell(getDoc(program, property) ?? '');
       rows.push(`| ${name} | ${typeName} | ${description} |`);
@@ -275,7 +266,6 @@ function getRequestBodyJson(
     return buildJsonBodyFromModel(
       props.operation.requestBodyModel,
       props.namespace,
-      props.program,
     );
   }
   if (props.entityModel) {
@@ -363,24 +353,11 @@ function buildCollectionJsonBody(
 
 /**
  * Build a JSON body from an arbitrary model (e.g., action parameters).
- * Excludes @path, @header, and @query parameters.
  */
-function buildJsonBodyFromModel(
-  model: Model,
-  _ns: string,
-  program?: Program,
-): string {
+function buildJsonBodyFromModel(model: Model, _ns: string): string {
   const entries: string[] = [];
 
   for (const [name, property] of model.properties) {
-    if (
-      program &&
-      (isPathParam(program, property) ||
-        isHeader(program, property) ||
-        isQueryParam(program, property))
-    ) {
-      continue;
-    }
     entries.push(`  "${name}": ${formatJsonValue(property.type)}`);
   }
 

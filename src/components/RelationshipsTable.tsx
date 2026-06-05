@@ -18,7 +18,7 @@ export interface RelationshipsTableProps {
  * Renders a Markdown table for @contains navigation properties (Relationships).
  */
 export function RelationshipsTable(props: RelationshipsTableProps): Children {
-  const rows: string[] = [];
+  const rows: { name: string; row: string }[] = [];
 
   for (const [name, property] of getModelProperties(
     props.program,
@@ -29,19 +29,19 @@ export function RelationshipsTable(props: RelationshipsTableProps): Children {
     const description = escapeMarkdownCell(
       getDoc(props.program, property) ?? TODO_DESCRIPTION,
     );
-    rows.push(`| ${name} | ${typeName} | ${description} |`);
+    rows.push({ name, row: `| ${name} | ${typeName} | ${description} |` });
   }
 
   if (rows.length === 0) {
     return ['\n## Relationships\n\n', 'None.\n'];
   }
 
-  rows.sort((a, b) => a.localeCompare(b));
+  rows.sort((a, b) => a.name.localeCompare(b.name));
 
   return [
     '\n## Relationships\n\n',
     '| Relationship | Type | Description |\n',
     '|:--|:--|:--|\n',
-    ...rows.map((r) => r + '\n'),
+    ...rows.map((r) => r.row + '\n'),
   ];
 }

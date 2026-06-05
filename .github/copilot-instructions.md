@@ -82,7 +82,7 @@ Configured in `tspconfig.yaml` under the emitter name:
 |---|---|---|---|
 | `api-version` | string | `v1.0` | API version for display (e.g., `v1.0`, `beta`) |
 | `output-dir` | string | compiler default | Override the output directory |
-| `ms-date` | string | today's date | Override `ms.date` in YAML front matter (ISO 8601) |
+| `ms-date` | string | today's date | Override `ms.date` in YAML front matter (MM/DD/YYYY format) |
 
 ## Output File Naming Conventions
 

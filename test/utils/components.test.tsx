@@ -966,6 +966,27 @@ describe('JsonRepresentation - edge cases', () => {
       '"@odata.type": "#microsoft.graph.beta.testEntity"',
     );
   });
+
+  it('uses actual @key property name in keyProperty annotation', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testEntity {
+          @readOnly @computed @key customKey: string;
+          name: string;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain('"keyProperty": "customKey"');
+    expect(result).not.toContain('"keyProperty": "id"');
+  });
 });
 
 describe('ResourceTypePage - description fallback', () => {

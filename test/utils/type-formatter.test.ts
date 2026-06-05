@@ -198,6 +198,18 @@ describe('formatTypeName', () => {
       const prop = model.model.properties.get('value')!;
       expect(formatTypeName(prop.type)).toBe('String or Int32');
     });
+
+    it('indicates nullability for multi-variant nullable unions', async () => {
+      await runner.compile(
+        graphSpec(`
+          @complex model testModel { value: string | int32 | null; }
+      `),
+      );
+      const types = collectGraphTypes(runner.program);
+      const model = types.complexTypes.find((c) => c.name === 'testModel')!;
+      const prop = model.model.properties.get('value')!;
+      expect(formatTypeName(prop.type)).toContain('null');
+    });
   });
 });
 

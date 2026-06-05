@@ -246,7 +246,9 @@ export function collectGraphTypes(program: Program): CollectedTypes {
       if (hasGraphRoute(program, iface)) {
         const paths = getGraphRoutePaths(program, iface);
         if (paths && paths.length > 0) {
-          routes.push({ path: paths[0], iface });
+          for (const path of paths) {
+            routes.push({ path, iface });
+          }
         }
       } else {
         // Check for @globalOperation-decorated operations
