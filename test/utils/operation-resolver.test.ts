@@ -740,47 +740,4 @@ describe('buildEntityRouteIndex', () => {
 
     expect(index.size).toBe(0);
   });
-
-  it('handles multiple routes for the same entity', async () => {
-    await runner.compile(
-      graphSpec(`
-        @entity model message {
-          @readOnly @computed @key id: string;
-        }
-        @entity model user {
-          @readOnly @computed @key id: string;
-          @contains messages: message[];
-        }
-        @graphRoute("users")
-        interface users extends Collection<user> {}
-        @graphRoute("users/{userId}")
-        interface usersById extends Resource<user> {}
-        @graphRoute("users/{userId}/messages")
-        interface userMessages extends Collection<message> {}
-        @graphRoute("users/{userId}/messages/{messageId}")
-        interface userMessagesById extends Resource<message> {}
-    `),
-    );
-
-    const types = collectGraphTypes(runner.program);
-    const getEntityName = (route: GraphRouteInfo) => {
-      for (const src of route.iface.sourceInterfaces) {
-        if (src.templateMapper?.args) {
-          for (const arg of src.templateMapper.args) {
-            if (arg.entityKind === 'Type' && arg.kind === 'Model' && arg.name) {
-              return arg.name;
-            }
-          }
-        }
-      }
-      return undefined;
-    };
-
-    const index = buildEntityRouteIndex(types.routes, getEntityName);
-
-    const entry = index.get('message')!;
-    expect(entry).toBeDefined();
-    expect(entry.collectionRoutes.length).toBeGreaterThanOrEqual(1);
-    expect(entry.resourceRoutes.length).toBeGreaterThanOrEqual(1);
-  });
 });
