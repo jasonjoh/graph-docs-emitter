@@ -18,9 +18,14 @@ export function getModelProperties(
   containment: 'exclude' | 'only' | 'all' = 'all',
 ): [string, ModelProperty][] {
   const results: [string, ModelProperty][] = [];
+  const seen = new Set<string>();
 
   function collect(properties: Map<string, ModelProperty>) {
     for (const [name, property] of properties) {
+      // Skip properties already seen from a more-derived model
+      if (seen.has(name)) continue;
+      seen.add(name);
+
       const isNav = isContains(program, property);
       if (containment === 'exclude' && isNav) continue;
       if (containment === 'only' && !isNav) continue;
@@ -28,9 +33,11 @@ export function getModelProperties(
     }
   }
 
-  collect(model.properties);
-  if (model.baseModel) {
-    collect(model.baseModel.properties);
+  // Walk the full inheritance chain, own properties first
+  let current: Model | undefined = model;
+  while (current) {
+    collect(current.properties);
+    current = current.baseModel;
   }
 
   return results;

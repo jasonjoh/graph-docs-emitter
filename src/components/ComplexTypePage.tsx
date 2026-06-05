@@ -24,7 +24,7 @@ export interface ComplexTypePageProps {
  * Similar to resource type but without Methods or Relationships sections.
  */
 export function ComplexTypePage(props: ComplexTypePageProps): Children {
-  const title = `${props.model.name} resource type`;
+  const title = `${props.model.name} complex type`;
   const desc = props.description ?? `Represents a ${props.model.name}.`;
   const isBeta = props.apiVersion === 'beta';
   const missingDescs = hasMissingDescriptions(props.program, props.model);

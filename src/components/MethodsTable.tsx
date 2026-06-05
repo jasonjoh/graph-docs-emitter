@@ -7,6 +7,7 @@ import {
   ResolvedOperation,
   DocOperationKind,
 } from '../utils/operation-resolver.js';
+import { escapeMarkdownCell } from '../utils/markdown.js';
 
 export interface MethodsTableProps {
   operations: ResolvedOperation[];
@@ -40,7 +41,7 @@ export function MethodsTable(props: MethodsTableProps): Children {
   const rows = sorted.map((op) => {
     const filename = props.getMethodFilename(op);
     const returnType = op.returnTypeName ? `\`${op.returnTypeName}\`` : 'None';
-    const description = op.description ?? '';
+    const description = escapeMarkdownCell(op.description ?? '');
     return `| [${op.name}](../api/${filename}) | ${returnType} | ${description} |`;
   });
 

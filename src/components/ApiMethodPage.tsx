@@ -19,6 +19,7 @@ import {
   getStandardCrudDescription,
 } from '../utils/operation-resolver.js';
 import { formatTypeName, formatJsonValue } from '../utils/type-formatter.js';
+import { escapeMarkdownCell } from '../utils/markdown.js';
 import { getExampleRequest } from '../decorators/example-request.js';
 import { getExampleResponse } from '../decorators/example-response.js';
 
@@ -31,6 +32,19 @@ export interface ApiMethodPageProps {
   apiVersion?: string;
   msDate?: string;
   author?: string;
+}
+
+/**
+ * Get the success HTTP status code for an operation kind.
+ */
+function getSuccessStatusCode(op: ResolvedOperation): string {
+  if (op.docKind === DocOperationKind.Delete || !op.returnTypeName) {
+    return '204 No Content';
+  }
+  if (op.docKind === DocOperationKind.PostCreate) {
+    return '201 Created';
+  }
+  return '200 OK';
 }
 
 /**
@@ -133,7 +147,7 @@ function renderRequestBody(op: ResolvedOperation, program: Program): Children {
         continue;
       }
       const typeName = formatTypeName(property.type);
-      const description = getDoc(program, property) ?? '';
+      const description = escapeMarkdownCell(getDoc(program, property) ?? '');
       rows.push(`| ${name} | ${typeName} | ${description} |`);
     }
 
@@ -168,7 +182,7 @@ function renderResponse(op: ResolvedOperation): Children {
     ? returnType.replace(' collection', '')
     : returnType;
   const linkPath = `../resources/${baseType.toLowerCase()}.md`;
-  const statusCode = op.docKind === 'post' ? '201 Created' : '200 OK';
+  const statusCode = getSuccessStatusCode(op);
 
   return [
     '\n## Response\n\n',
@@ -181,12 +195,7 @@ function renderExample(
   props: ApiMethodPageProps,
 ): Children {
   const returnType = op.returnTypeName;
-  const statusCode =
-    op.docKind === 'delete'
-      ? '204 No Content'
-      : op.docKind === 'post'
-        ? '201 Created'
-        : '200 OK';
+  const statusCode = getSuccessStatusCode(op);
   const requestName = props.filename.replace(/\.md$/, '');
   const ns = props.namespace;
   const hasRequestBody =

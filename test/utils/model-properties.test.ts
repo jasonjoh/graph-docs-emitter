@@ -200,4 +200,55 @@ describe('getModelProperties', () => {
     const navNames = navOnly.map(([name]) => name);
     expect(navNames).toEqual(['items']);
   });
+
+  it('walks multi-level inheritance chains', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model grandparent {
+          @readOnly @computed @key id: string;
+          createdAt: string;
+        }
+        @entity model parent extends grandparent {
+          updatedAt: string;
+        }
+        @entity model child extends parent {
+          name: string;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'child')!;
+    const props = getModelProperties(runner.program, entity.model);
+
+    const names = props.map(([name]) => name);
+    expect(names).toContain('name');
+    expect(names).toContain('updatedAt');
+    expect(names).toContain('createdAt');
+    expect(names).toContain('id');
+  });
+
+  it('derived property overrides base property with same name', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model base {
+          @readOnly @computed @key id: string;
+          /** Base description */
+          status: string;
+        }
+        @entity model derived extends base {
+          /** Derived description */
+          status: string;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'derived')!;
+    const props = getModelProperties(runner.program, entity.model);
+
+    // "status" should appear only once (derived wins)
+    const statusProps = props.filter(([name]) => name === 'status');
+    expect(statusProps).toHaveLength(1);
+  });
 });

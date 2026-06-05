@@ -1,7 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-import { createTypeSpecLibrary, JSONSchemaType } from '@typespec/compiler';
+import {
+  createTypeSpecLibrary,
+  JSONSchemaType,
+  paramMessage,
+} from '@typespec/compiler';
 
 export interface GraphDocsEmitterOptions {
   'api-version'?: string;
@@ -45,7 +49,14 @@ const EmitterOptionsSchema: JSONSchemaType<GraphDocsEmitterOptions> = {
 
 export const $lib = createTypeSpecLibrary({
   name: '@microsoft/typespec-graph-docs-emitter',
-  diagnostics: {},
+  diagnostics: {
+    'unknown-operation-pattern': {
+      severity: 'warning',
+      messages: {
+        default: paramMessage`Operation "${'opName'}" does not match any known GraphOps pattern and will be skipped. Use a recognized template (e.g., GraphOps.Action, GraphOps.GetResource) or add it to the emitter's OPERATION_PATTERNS.`,
+      },
+    },
+  },
   emitter: {
     options: EmitterOptionsSchema,
   },

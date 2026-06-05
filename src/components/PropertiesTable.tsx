@@ -8,6 +8,7 @@ import { Children } from '@alloy-js/core';
 import { Model, Program, getDoc } from '@typespec/compiler';
 import { formatTypeName } from '../utils/type-formatter.js';
 import { getModelProperties } from '../utils/model-properties.js';
+import { escapeMarkdownCell } from '../utils/markdown.js';
 
 export const TODO_DESCRIPTION = '**TODO: Add description**';
 
@@ -29,7 +30,9 @@ export function PropertiesTable(props: PropertiesTableProps): Children {
     'exclude',
   )) {
     const typeName = formatTypeName(property.type);
-    const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
+    const description = escapeMarkdownCell(
+      getDoc(props.program, property) ?? TODO_DESCRIPTION,
+    );
     rows.push(`| ${name} | ${typeName} | ${description} |`);
   }
 

@@ -12,6 +12,7 @@ import {
   getAgsAttributes,
   isGlobalOperation,
 } from '@microsoft/typespec-msgraph';
+import { $lib } from '../lib.js';
 
 /**
  * Represents a resolved HTTP operation ready for documentation generation.
@@ -359,20 +360,13 @@ function resolveOperation(
     };
   }
 
-  // If not a known pattern, treat as an action
-  const displayName = entityName ? `${entityName}: ${opName}` : opName;
-  return {
-    name: displayName,
-    httpMethod: 'POST',
-    routePath: `${routePath}/${opName}`,
-    resourceTypeName: resourceSegment,
-    description,
-    docKind: DocOperationKind.Action,
-    actionOrFunctionName: opName,
-    returnTypeName: getActionReturnTypeName(operation),
-    typespecOperation: operation,
-    requestBodyModel: getActionParametersModel(operation),
-  };
+  // Unknown operation pattern — emit warning and skip
+  $lib.reportDiagnostic(program, {
+    code: 'unknown-operation-pattern',
+    target: operation,
+    format: { opName },
+  });
+  return undefined;
 }
 
 /**
