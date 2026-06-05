@@ -6,7 +6,7 @@ import { Children } from '@alloy-js/core';
 import { Model, Program } from '@typespec/compiler';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import { PropertiesTable } from './PropertiesTable.jsx';
-import { hasMissingDescriptions } from './PropertiesTable.jsx';
+import { getTodoComment } from './PropertiesTable.jsx';
 import { JsonRepresentation } from './JsonRepresentation.jsx';
 
 export interface ComplexTypePageProps {
@@ -27,12 +27,7 @@ export function ComplexTypePage(props: ComplexTypePageProps): Children {
   const title = `${props.model.name} complex type`;
   const desc = props.description ?? `Represents a ${props.model.name}.`;
   const isBeta = props.apiVersion === 'beta';
-  const missingDescs = hasMissingDescriptions(props.program, props.model);
-  const todoComment = missingDescs
-    ? '<!-- This file contains placeholder descriptions ("TODO: Add description") because\n' +
-      '     the source TypeSpec file is missing documentation comments for some properties.\n' +
-      '     Please update the TypeSpec source with the missing descriptions and regenerate. -->\n\n'
-    : '';
+  const todoComment = getTodoComment(props.program, props.model);
 
   return [
     <YamlFrontMatter

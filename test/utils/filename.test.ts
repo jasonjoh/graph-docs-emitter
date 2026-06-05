@@ -39,6 +39,16 @@ describe('getTypeFilename', () => {
   it('strips nothing else from simple names', () => {
     expect(getTypeFilename('appQuotaSettings')).toBe('appquotasettings.md');
   });
+
+  it('removes spaces from type names', () => {
+    expect(getTypeFilename('My Type')).toBe('mytype.md');
+  });
+
+  it('removes filesystem-unsafe characters', () => {
+    expect(getTypeFilename('test/type')).toBe('testtype.md');
+    expect(getTypeFilename('test\\type')).toBe('testtype.md');
+    expect(getTypeFilename('test:type')).toBe('testtype.md');
+  });
 });
 
 describe('getMethodFilename', () => {

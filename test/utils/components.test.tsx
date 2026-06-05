@@ -227,9 +227,11 @@ describe('EnumsPage', () => {
     );
 
     expect(result).toContain('### testStatus values');
-    expect(result).toContain('| Member |');
+    expect(result).toContain('| Member | Value | Description |');
     expect(result).toContain('| active |');
+    expect(result).toContain('The item is active.');
     expect(result).toContain('| inactive |');
+    expect(result).toContain('The item is inactive.');
     expect(result).toContain('| unknownFutureValue |');
   });
 });

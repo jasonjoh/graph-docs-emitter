@@ -7,7 +7,6 @@ import {
   Scalar,
   Union,
   isArrayModelType,
-  isRecordModelType,
 } from '@typespec/compiler';
 import { DEFAULT_NAMESPACE } from './graph-metadata.js';
 
@@ -134,8 +133,7 @@ export function formatJsonValue(type: Type): string {
       if (type.name && type.name !== 'Record') {
         return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
       }
-      if (!type.name || isRecordModelType(type)) return '{}';
-      return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
+      return '{}';
     case 'Enum':
       return '"String"';
     case 'Union':

@@ -60,3 +60,15 @@ export function hasMissingDescriptions(
   }
   return false;
 }
+
+/**
+ * Returns an HTML comment warning if any properties lack descriptions.
+ */
+export function getTodoComment(program: Program, model: Model): string {
+  if (!hasMissingDescriptions(program, model)) return '';
+  return (
+    '<!-- This file contains placeholder descriptions ("TODO: Add description") because\n' +
+    '     the source TypeSpec file is missing documentation comments for some properties.\n' +
+    '     Please update the TypeSpec source with the missing descriptions and regenerate. -->\n\n'
+  );
+}
