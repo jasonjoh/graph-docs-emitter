@@ -10,7 +10,6 @@ import {
   isImmutable,
   isReadOnly,
 } from '@microsoft/typespec-msgraph';
-import { isHeader, isPathParam, isQueryParam } from '@typespec/http';
 import { DEFAULT_NAMESPACE } from '../utils/graph-metadata.js';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import {
@@ -19,6 +18,7 @@ import {
   getStandardCrudDescription,
 } from '../utils/operation-resolver.js';
 import { formatTypeName, formatJsonValue } from '../utils/type-formatter.js';
+import { escapeMarkdownCell } from '../utils/markdown.js';
 import { getExampleRequest } from '../decorators/example-request.js';
 import { getExampleResponse } from '../decorators/example-response.js';
 
@@ -31,6 +31,19 @@ export interface ApiMethodPageProps {
   apiVersion?: string;
   msDate?: string;
   author?: string;
+}
+
+/**
+ * Get the success HTTP status code for an operation kind.
+ */
+function getSuccessStatusCode(op: ResolvedOperation): string {
+  if (op.docKind === DocOperationKind.Delete || !op.returnTypeName) {
+    return '204 No Content';
+  }
+  if (op.docKind === DocOperationKind.PostCreate) {
+    return '201 Created';
+  }
+  return '200 OK';
 }
 
 /**
@@ -124,16 +137,8 @@ function renderRequestBody(op: ResolvedOperation, program: Program): Children {
   if (op.requestBodyModel && op.requestBodyModel.properties.size > 0) {
     const rows: string[] = [];
     for (const [name, property] of op.requestBodyModel.properties) {
-      // Skip path, header, and query parameters — they aren't in the body
-      if (
-        isPathParam(program, property) ||
-        isHeader(program, property) ||
-        isQueryParam(program, property)
-      ) {
-        continue;
-      }
       const typeName = formatTypeName(property.type);
-      const description = getDoc(program, property) ?? '';
+      const description = escapeMarkdownCell(getDoc(program, property) ?? '');
       rows.push(`| ${name} | ${typeName} | ${description} |`);
     }
 
@@ -168,7 +173,7 @@ function renderResponse(op: ResolvedOperation): Children {
     ? returnType.replace(' collection', '')
     : returnType;
   const linkPath = `../resources/${baseType.toLowerCase()}.md`;
-  const statusCode = op.docKind === 'post' ? '201 Created' : '200 OK';
+  const statusCode = getSuccessStatusCode(op);
 
   return [
     '\n## Response\n\n',
@@ -181,12 +186,7 @@ function renderExample(
   props: ApiMethodPageProps,
 ): Children {
   const returnType = op.returnTypeName;
-  const statusCode =
-    op.docKind === 'delete'
-      ? '204 No Content'
-      : op.docKind === 'post'
-        ? '201 Created'
-        : '200 OK';
+  const statusCode = getSuccessStatusCode(op);
   const requestName = props.filename.replace(/\.md$/, '');
   const ns = props.namespace;
   const hasRequestBody =
@@ -266,7 +266,6 @@ function getRequestBodyJson(
     return buildJsonBodyFromModel(
       props.operation.requestBodyModel,
       props.namespace,
-      props.program,
     );
   }
   if (props.entityModel) {
@@ -354,24 +353,11 @@ function buildCollectionJsonBody(
 
 /**
  * Build a JSON body from an arbitrary model (e.g., action parameters).
- * Excludes @path, @header, and @query parameters.
  */
-function buildJsonBodyFromModel(
-  model: Model,
-  _ns: string,
-  program?: Program,
-): string {
+function buildJsonBodyFromModel(model: Model, _ns: string): string {
   const entries: string[] = [];
 
   for (const [name, property] of model.properties) {
-    if (
-      program &&
-      (isPathParam(program, property) ||
-        isHeader(program, property) ||
-        isQueryParam(program, property))
-    ) {
-      continue;
-    }
     entries.push(`  "${name}": ${formatJsonValue(property.type)}`);
   }
 

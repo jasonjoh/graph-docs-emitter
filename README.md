@@ -42,7 +42,7 @@ options:
   "@microsoft/typespec-graph-docs-emitter":
     api-version: "beta"           # optional, default: "v1.0"
     output-dir: "./docs"          # optional, overrides compiler default
-    ms-date: "2025-01-15"         # optional, overrides ms.date in YAML front matter
+    ms-date: "01/15/2025"         # optional, overrides ms.date in YAML front matter
 ```
 
 Then run the TypeSpec compiler:
@@ -120,7 +120,7 @@ post is LocalOps.Post<400|500>;
 |---------------|----------|------------------|---------------------------------------------------------------------------------------------|
 | `api-version` | `string` | `v1.0`           | The Microsoft Graph API version (e.g., `v1.0`, `beta`). Used for display in generated docs. |
 | `output-dir`  | `string` | compiler default | Override the output directory for generated files.                                          |
-| `ms-date`     | `string` | today's date     | Override the `ms.date` value in YAML front matter (ISO 8601 date).                          |
+| `ms-date`     | `string` | today's date     | Override the `ms.date` value in YAML front matter (MM/DD/YYYY format).                          |
 
 ## Output Structure
 

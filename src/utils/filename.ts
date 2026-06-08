@@ -4,12 +4,19 @@
 import { ResolvedOperation, DocOperationKind } from './operation-resolver.js';
 
 /**
+ * Remove filesystem-unsafe characters from a name.
+ */
+function sanitizeFilename(name: string): string {
+  return name.replace(/[/\\:*?"<>|\s]/g, '');
+}
+
+/**
  * Generate a filename for a resource, enum, or complex type page.
  * Rule: all-lowercase, no spaces or hyphens.
  * E.g., "copilotConversation" -> "copilotconversation.md"
  */
 export function getTypeFilename(typeName: string): string {
-  return `${typeName.toLowerCase()}.md`;
+  return `${sanitizeFilename(typeName).toLowerCase()}.md`;
 }
 
 /**
@@ -26,12 +33,16 @@ export function getMethodFilename(
   op: ResolvedOperation,
   entityName: string,
 ): string {
-  const resource = entityName.toLowerCase();
+  const resource = sanitizeFilename(entityName).toLowerCase();
 
   switch (op.docKind) {
     case DocOperationKind.ListCollection: {
-      const parent = op.parentEntityName?.toLowerCase() ?? resource;
-      const collectionName = op.resourceTypeName.toLowerCase();
+      const parent = sanitizeFilename(
+        op.parentEntityName ?? entityName,
+      ).toLowerCase();
+      const collectionName = sanitizeFilename(
+        op.resourceTypeName,
+      ).toLowerCase();
       return `${parent}-list-${collectionName}.md`;
     }
 
@@ -39,15 +50,20 @@ export function getMethodFilename(
       return `${resource}-get.md`;
 
     case DocOperationKind.PostCreate: {
-      const parent = op.parentEntityName?.toLowerCase() ?? resource;
-      const collectionName = op.resourceTypeName.toLowerCase();
+      const parent = sanitizeFilename(
+        op.parentEntityName ?? entityName,
+      ).toLowerCase();
+      const collectionName = sanitizeFilename(
+        op.resourceTypeName,
+      ).toLowerCase();
       return `${parent}-post-${collectionName}.md`;
     }
 
     case DocOperationKind.Action:
     case DocOperationKind.Function: {
-      const actionName =
-        op.actionOrFunctionName?.toLowerCase() ?? op.name.toLowerCase();
+      const actionName = sanitizeFilename(
+        op.actionOrFunctionName ?? op.name,
+      ).toLowerCase();
       return `${resource}-${actionName}.md`;
     }
 
@@ -58,6 +74,6 @@ export function getMethodFilename(
       return `${resource}-delete.md`;
 
     default:
-      return `${resource}-${op.name.toLowerCase()}.md`;
+      return `${resource}-${sanitizeFilename(op.name).toLowerCase()}.md`;
   }
 }

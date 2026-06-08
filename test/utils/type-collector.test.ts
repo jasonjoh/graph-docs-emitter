@@ -199,3 +199,25 @@ describe('collectGraphTypes - namespace filtering', () => {
     ).toBeUndefined();
   });
 });
+
+describe('collectGraphTypes - multiple route paths', () => {
+  it('collects all paths when @graphRoute returns multiple', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testItem {
+          @readOnly @computed @key id: string;
+        }
+        @graphRoute("items")
+        @graphRoute("altItems")
+        interface testRoutes extends Collection<testItem> {}
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const itemsRoute = types.routes.find((r) => r.path === 'items');
+    const altRoute = types.routes.find((r) => r.path === 'altItems');
+    expect(itemsRoute).toBeDefined();
+    expect(altRoute).toBeDefined();
+    expect(itemsRoute!.iface).toBe(altRoute!.iface);
+  });
+});

@@ -8,6 +8,7 @@ import { Children } from '@alloy-js/core';
 import { Model, Program, getDoc } from '@typespec/compiler';
 import { formatTypeName } from '../utils/type-formatter.js';
 import { getModelProperties } from '../utils/model-properties.js';
+import { escapeMarkdownCell } from '../utils/markdown.js';
 
 export const TODO_DESCRIPTION = '**TODO: Add description**';
 
@@ -21,7 +22,7 @@ export interface PropertiesTableProps {
  * Navigation properties are handled by RelationshipsTable.
  */
 export function PropertiesTable(props: PropertiesTableProps): Children {
-  const rows: string[] = [];
+  const rows: { name: string; row: string }[] = [];
 
   for (const [name, property] of getModelProperties(
     props.program,
@@ -29,19 +30,21 @@ export function PropertiesTable(props: PropertiesTableProps): Children {
     'exclude',
   )) {
     const typeName = formatTypeName(property.type);
-    const description = getDoc(props.program, property) ?? TODO_DESCRIPTION;
-    rows.push(`| ${name} | ${typeName} | ${description} |`);
+    const description = escapeMarkdownCell(
+      getDoc(props.program, property) ?? TODO_DESCRIPTION,
+    );
+    rows.push({ name, row: `| ${name} | ${typeName} | ${description} |` });
   }
 
   if (rows.length === 0) return [];
 
-  rows.sort((a, b) => a.localeCompare(b));
+  rows.sort((a, b) => a.name.localeCompare(b.name));
 
   return [
     '\n## Properties\n\n',
     '| Property | Type | Description |\n',
     '|:--|:--|:--|\n',
-    ...rows.map((r) => r + '\n'),
+    ...rows.map((r) => r.row + '\n'),
   ];
 }
 
@@ -56,4 +59,16 @@ export function hasMissingDescriptions(
     if (!getDoc(program, property)) return true;
   }
   return false;
+}
+
+/**
+ * Returns an HTML comment warning if any properties lack descriptions.
+ */
+export function getTodoComment(program: Program, model: Model): string {
+  if (!hasMissingDescriptions(program, model)) return '';
+  return (
+    '<!-- This file contains placeholder descriptions ("TODO: Add description") because\n' +
+    '     the source TypeSpec file is missing documentation comments for some properties.\n' +
+    '     Please update the TypeSpec source with the missing descriptions and regenerate. -->\n\n'
+  );
 }

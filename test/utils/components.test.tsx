@@ -227,9 +227,11 @@ describe('EnumsPage', () => {
     );
 
     expect(result).toContain('### testStatus values');
-    expect(result).toContain('| Member |');
+    expect(result).toContain('| Member | Value | Description |');
     expect(result).toContain('| active |');
+    expect(result).toContain('The item is active.');
     expect(result).toContain('| inactive |');
+    expect(result).toContain('The item is inactive.');
     expect(result).toContain('| unknownFutureValue |');
   });
 });
@@ -965,6 +967,27 @@ describe('JsonRepresentation - edge cases', () => {
     expect(result).toContain(
       '"@odata.type": "#microsoft.graph.beta.testEntity"',
     );
+  });
+
+  it('uses actual @key property name in keyProperty annotation', async () => {
+    await runner.compile(
+      graphSpec(`
+        @entity model testEntity {
+          @readOnly @computed @key customKey: string;
+          name: string;
+        }
+    `),
+    );
+
+    const types = collectGraphTypes(runner.program);
+    const entity = types.entities.find((e) => e.name === 'testEntity')!;
+
+    const result = renderToString(
+      <JsonRepresentation program={runner.program} model={entity.model} />,
+    );
+
+    expect(result).toContain('"keyProperty": "customKey"');
+    expect(result).not.toContain('"keyProperty": "id"');
   });
 });
 

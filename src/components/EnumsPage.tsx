@@ -3,7 +3,7 @@
 
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
-import { Enum, Program } from '@typespec/compiler';
+import { Enum, Program, getDoc } from '@typespec/compiler';
 import { YamlFrontMatter } from './YamlFrontMatter.jsx';
 import { GraphEnumInfo } from '../utils/type-collector.js';
 
@@ -17,15 +17,24 @@ export interface EnumsPageProps {
 }
 
 /**
- * Renders a single-column Member table for an enum.
+ * Renders a Member | Value | Description table for an enum.
  */
-function EnumMembersList(props: { enumType: Enum }): Children {
+function EnumMembersList(props: {
+  enumType: Enum;
+  program: Program;
+}): Children {
   const rows: string[] = [];
-  for (const [name] of props.enumType.members) {
-    rows.push(`| ${name} |`);
+  for (const [name, member] of props.enumType.members) {
+    const value = member.value !== undefined ? String(member.value) : name;
+    const description = getDoc(props.program, member) ?? '';
+    rows.push(`| ${name} | ${value} | ${description} |`);
   }
 
-  return ['\n| Member |\n', '|:---|\n', ...rows.map((r) => r + '\n')];
+  return [
+    '\n| Member | Value | Description |\n',
+    '|:--|:--|:--|\n',
+    ...rows.map((r) => r + '\n'),
+  ];
 }
 
 /**
@@ -54,7 +63,7 @@ export function EnumsPage(props: EnumsPageProps): Children {
       : '',
     ...sorted.flatMap((enumInfo) => [
       `### ${enumInfo.name} values\n`,
-      <EnumMembersList enumType={enumInfo.enumType} />,
+      <EnumMembersList enumType={enumInfo.enumType} program={props.program} />,
       '\n',
     ]),
   ];

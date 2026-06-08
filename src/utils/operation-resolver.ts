@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 import { Program, Operation, Model, getDoc } from '@typespec/compiler';
+import { isPathParam, isHeader, isQueryParam } from '@typespec/http';
 import {
   GraphRouteInfo,
   GraphEntityInfo,
@@ -12,6 +13,7 @@ import {
   getAgsAttributes,
   isGlobalOperation,
 } from '@microsoft/typespec-msgraph';
+import { $lib } from '../lib.js';
 
 /**
  * Represents a resolved HTTP operation ready for documentation generation.
@@ -316,7 +318,7 @@ function resolveOperation(
     ) {
       const returnTypeName = getActionReturnTypeName(operation);
       const displayName = entityName ? `${entityName}: ${opName}` : opName;
-      const requestBodyModel = getActionParametersModel(operation);
+      const requestBodyModel = getActionParametersModel(program, operation);
       return {
         name: displayName,
         httpMethod: pattern.httpMethod,
@@ -331,14 +333,10 @@ function resolveOperation(
       };
     }
 
-    // Adjust list vs get for "get" operations on collection routes
+    // Adjust docKind for "get" alias based on route type
     let docKind = pattern.docKind;
-    if (
-      opName === 'get' &&
-      isCollection &&
-      pattern.docKind === DocOperationKind.ListCollection
-    ) {
-      docKind = DocOperationKind.ListCollection;
+    if (pattern.docKind === DocOperationKind.ListCollection && !isCollection) {
+      docKind = DocOperationKind.GetResource;
     }
 
     const { parent: parentSegment } = parseRouteSegments(routePath);
@@ -359,20 +357,13 @@ function resolveOperation(
     };
   }
 
-  // If not a known pattern, treat as an action
-  const displayName = entityName ? `${entityName}: ${opName}` : opName;
-  return {
-    name: displayName,
-    httpMethod: 'POST',
-    routePath: `${routePath}/${opName}`,
-    resourceTypeName: resourceSegment,
-    description,
-    docKind: DocOperationKind.Action,
-    actionOrFunctionName: opName,
-    returnTypeName: getActionReturnTypeName(operation),
-    typespecOperation: operation,
-    requestBodyModel: getActionParametersModel(operation),
-  };
+  // Unknown operation pattern — emit warning and skip
+  $lib.reportDiagnostic(program, {
+    code: 'unknown-operation-pattern',
+    target: operation,
+    format: { opName },
+  });
+  return undefined;
 }
 
 /**
@@ -487,10 +478,33 @@ function getActionReturnTypeName(operation: Operation): string | undefined {
  * Uses the operation's parameters model which contains the
  * request body properties for actions.
  */
-function getActionParametersModel(operation: Operation): Model | undefined {
+function getActionParametersModel(
+  program: Program,
+  operation: Operation,
+): Model | undefined {
   const params = operation.parameters;
-  if (params && params.properties.size > 0) {
-    return params;
+  if (!params || params.properties.size === 0) {
+    return undefined;
   }
-  return undefined;
+
+  // Filter out @path, @header, @query, and graphRouteParams — only keep body params
+  const bodyProps = new Map(
+    [...params.properties].filter(
+      ([name, prop]) =>
+        name !== 'graphRouteParams' &&
+        !isPathParam(program, prop) &&
+        !isHeader(program, prop) &&
+        !isQueryParam(program, prop),
+    ),
+  );
+
+  if (bodyProps.size === 0) {
+    return undefined;
+  }
+
+  // Return a shallow copy with only body properties
+  return {
+    ...params,
+    properties: bodyProps,
+  } as Model;
 }

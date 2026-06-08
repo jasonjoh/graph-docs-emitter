@@ -3,7 +3,7 @@
 
 /** @jsxImportSource @alloy-js/core */
 import { Children } from '@alloy-js/core';
-import { Model, Program } from '@typespec/compiler';
+import { isKey, Model, Program } from '@typespec/compiler';
 import { formatJsonValue } from '../utils/type-formatter.js';
 import { getModelProperties } from '../utils/model-properties.js';
 import { DEFAULT_NAMESPACE } from '../utils/graph-metadata.js';
@@ -44,12 +44,21 @@ export function JsonRepresentation(props: JsonRepresentationProps): Children {
   const jsonBlock = lines.join('\n');
   const odataType = `${ns}.${props.model.name ?? ''}`;
 
+  // Find the @key property name, defaulting to 'id'
+  let keyPropertyName = 'id';
+  for (const prop of props.model.properties.values()) {
+    if (isKey(props.program, prop)) {
+      keyPropertyName = prop.name;
+      break;
+    }
+  }
+
   return [
     '\n## JSON representation\n\n',
     'The following JSON representation shows the resource type.\n\n',
     '<!-- {\n',
     '  "blockType": "resource",\n',
-    '  "keyProperty": "id",\n',
+    `  "keyProperty": "${keyPropertyName}",\n`,
     '  "optionalProperties": [],\n',
     `  "@odata.type": "${odataType}"\n`,
     '} -->\n\n',

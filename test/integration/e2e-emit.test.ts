@@ -223,7 +223,7 @@ describe('$onEmit end-to-end', () => {
       const result = await emitterTester.compile(SPEC_WITH_COMPLEX);
       expect(result.outputs['v1.0/resources/testaddress.md']).toBeDefined();
       const content = result.outputs['v1.0/resources/testaddress.md'];
-      expect(content).toContain('# testAddress resource type');
+      expect(content).toContain('# testAddress complex type');
       expect(content).toContain('| street | String |');
       expect(content).toContain('| city | String |');
     });

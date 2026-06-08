@@ -7,7 +7,6 @@ import {
   Scalar,
   Union,
   isArrayModelType,
-  isRecordModelType,
 } from '@typespec/compiler';
 import { DEFAULT_NAMESPACE } from './graph-metadata.js';
 
@@ -64,13 +63,17 @@ function formatUnionType(union: Union): string {
     (v) => !(v.type.kind === 'Intrinsic' && v.type.name === 'null'),
   );
 
+  const isNullable = nonNullVariants.length < variants.length;
+
   if (nonNullVariants.length === 1) {
-    const formatted = formatTypeName(nonNullVariants[0].type);
-    return formatted;
+    return formatTypeName(nonNullVariants[0].type);
   }
 
-  // Multiple non-null variants: join with " or "
-  return nonNullVariants.map((v) => formatTypeName(v.type)).join(' or ');
+  // Multiple non-null variants: join with " or ", append nullable indicator
+  const formatted = nonNullVariants
+    .map((v) => formatTypeName(v.type))
+    .join(' or ');
+  return isNullable ? `${formatted} (nullable)` : formatted;
 }
 
 function formatLiteralType(type: Type): string {
@@ -130,8 +133,7 @@ export function formatJsonValue(type: Type): string {
       if (type.name && type.name !== 'Record') {
         return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
       }
-      if (!type.name || isRecordModelType(type)) return '{}';
-      return `{"@odata.type": "${DEFAULT_NAMESPACE}.${type.name}"}`;
+      return '{}';
     case 'Enum':
       return '"String"';
     case 'Union':
